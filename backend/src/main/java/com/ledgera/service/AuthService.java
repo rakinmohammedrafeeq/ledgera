@@ -35,10 +35,12 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        // verify credentials through the authentication manager
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
+        // issue a JWT for the authenticated session
         String token = jwtTokenProvider.generateToken(authentication);
 
         User user = userRepository.findByEmail(request.getEmail())
@@ -96,6 +98,7 @@ public class AuthService {
                 // don't reveal whether other emails exist
                 .orElseThrow(() -> new ResourceNotFoundException("No account found with this email"));
 
+        // generate a one-time reset token
         String resetToken = UUID.randomUUID().toString();
         user.setResetToken(resetToken);
         // keep reset tokens short-lived
@@ -117,6 +120,7 @@ public class AuthService {
             throw new BadRequestException("Reset token has expired");
         }
 
+        // update stored password hash
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         // clear token after successful reset
         user.setResetToken(null);

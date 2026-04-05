@@ -41,9 +41,11 @@ public class DashboardService {
                 ? recordRepository.sumByTypeAndUser(TransactionType.EXPENSE, currentUser.getId())
                 : recordRepository.sumByType(TransactionType.EXPENSE);
         if (totalIncome == null) {
+            // default null aggregates to zero for math
             totalIncome = BigDecimal.ZERO;
         }
         if (totalExpenses == null) {
+            // default null aggregates to zero for math
             totalExpenses = BigDecimal.ZERO;
         }
         // calculate net balance for the dashboard
@@ -70,6 +72,7 @@ public class DashboardService {
         Map<String, CategoryTotal> categoryMap = new LinkedHashMap<>();
 
         for (Object[] row : results) {
+            // skip malformed rows from native aggregation
             if (row == null || row.length < 3) {
                 continue;
             }
@@ -81,6 +84,7 @@ public class DashboardService {
                     ? (BigDecimal) row[2]
                     : BigDecimal.ZERO;
             if (type == null) {
+                // ignore rows with missing transaction type
                 continue;
             }
 
@@ -110,6 +114,7 @@ public class DashboardService {
         Map<String, MonthlyTrend> trendMap = new LinkedHashMap<>();
 
         for (Object[] row : results) {
+            // skip malformed rows from native aggregation
             if (row == null || row.length < 4) {
                 continue;
             }
@@ -122,6 +127,7 @@ public class DashboardService {
                     ? (BigDecimal) row[3]
                     : BigDecimal.ZERO;
             if (type == null || year == 0 || month == 0) {
+                // ignore rows missing a valid time bucket
                 continue;
             }
 

@@ -30,6 +30,7 @@ public class UserService {
 
     public List<UserResponse> getAssignableUsers() {
         return userRepository.findAll().stream()
+                // only viewers can be assigned to records
                 .filter(user -> user.getRole() == Role.VIEWER)
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -43,6 +44,7 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
+        // protect the seeded admin account from deactivation
         if (user.getEmail().equals("admin@ledgera.com")) {
             throw new BadRequestException("Cannot deactivate the default admin account");
         }

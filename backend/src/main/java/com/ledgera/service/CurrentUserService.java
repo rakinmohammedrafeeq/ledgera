@@ -18,11 +18,13 @@ public class CurrentUserService {
 
     public User requireCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // require an authenticated security context
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new UnauthorizedException("Authentication required");
         }
 
         String email = authentication.getName();
+        // guard against anonymous or blank principals
         if (email == null || email.isBlank() || "anonymousUser".equalsIgnoreCase(email)) {
             throw new UnauthorizedException("Invalid authentication principal");
         }
@@ -31,4 +33,3 @@ public class CurrentUserService {
                 .orElseThrow(() -> new UnauthorizedException("Authenticated user not found"));
     }
 }
-

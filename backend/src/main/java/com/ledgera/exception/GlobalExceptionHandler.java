@@ -51,6 +51,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException ex) {
         ApiError error = ApiError.builder()
                 .status(HttpStatus.UNAUTHORIZED.value())
+                // keep auth errors generic to avoid leaking details
                 .message("Invalid email or password")
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -71,6 +72,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
+            // surface per-field validation messages
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
 
@@ -107,6 +109,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleGeneral(Exception ex) {
         ApiError error = ApiError.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                // hide unexpected errors behind a safe message
                 .message("An unexpected error occurred")
                 .timestamp(LocalDateTime.now())
                 .build();
