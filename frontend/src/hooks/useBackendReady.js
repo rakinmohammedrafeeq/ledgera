@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { backendRootURL } from '../api/axios';
+import { apiBaseURL } from '../api/axios';
 
 const HEALTH_TIMEOUT_MS = 4000;
 const DEFAULT_RETRY_INTERVAL = 4000;
 const FALLBACK_TIMEOUT_MS = 30000;
 
 const getHealthUrl = () => {
-  if (backendRootURL.startsWith('http')) {
-    return `${backendRootURL.replace(/\/$/, '')}/health`;
+  if (apiBaseURL.startsWith('http')) {
+    return `${apiBaseURL.replace(/\/$/, '')}/healthz`;
   }
-  return '/health';
+  return '/api/healthz';
 };
 
 async function checkHealth() {
@@ -23,7 +23,7 @@ async function checkHealth() {
       signal: controller.signal,
     });
 
-    return response.ok;
+    return response.ok || [401, 403].includes(response.status);
   } catch (error) {
     return false;
   } finally {
@@ -122,4 +122,3 @@ export default function useBackendReady() {
     prewarm,
   };
 }
-
