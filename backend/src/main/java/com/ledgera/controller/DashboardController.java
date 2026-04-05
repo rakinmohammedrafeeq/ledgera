@@ -19,6 +19,7 @@ public class DashboardController {
     }
 
     @GetMapping
+    // dashboard is visible to all roles
     @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST', 'VIEWER')")
     public ResponseEntity<DashboardResponse> getDashboard() {
         return ResponseEntity.ok(dashboardService.getDashboardData());

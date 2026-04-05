@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, RefreshCw, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { RefreshCw, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import api from '../api/axios';
 import { MonthlyTrendsChart, CategoryBreakdownChart } from '../components/Charts';
 import RecentTransactions from '../components/RecentTransactions';
 import Topbar from '../components/Topbar';
 import { useAuth } from '../context/AuthContext';
-import Fab from '../components/Fab';
 import { useToast } from '../components/ToastProvider';
 import { SkeletonBlock } from '../components/Skeleton';
 
@@ -143,21 +142,12 @@ export default function DashboardPage() {
         {/* Charts */}
         <div className="charts-grid">
           <MonthlyTrendsChart data={data?.monthlyTrends} />
-          <CategoryBreakdownChart data={data?.categoryTotals} />
+          <CategoryBreakdownChart data={data?.recentTransactions} />
         </div>
 
         {/* Recent transactions */}
         <RecentTransactions transactions={data?.recentTransactions} />
       </div>
-
-      {/* Floating Action Button */}
-      <Fab
-        title="Add Expense"
-        onClick={() => toast.push({ type: 'info', title: 'Quick add', message: 'Open Records, then use New Record to add an expense.' })}
-      >
-        <Plus strokeWidth={2.25} aria-hidden />
-        Add Expense
-      </Fab>
     </>
   );
 }

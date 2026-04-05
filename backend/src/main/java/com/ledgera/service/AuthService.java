@@ -53,6 +53,7 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
+        // prevent duplicate accounts
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("Email is already registered");
         }
@@ -61,9 +62,11 @@ public class AuthService {
         try {
             role = Role.valueOf(request.getRole().toUpperCase());
         } catch (IllegalArgumentException e) {
+            // keep role input constrained to supported values
             throw new BadRequestException("Invalid role. Must be ANALYST or VIEWER");
         }
 
+        // do not allow self-registering as admin
         if (role == Role.ADMIN) {
             throw new BadRequestException("Cannot register as ADMIN");
         }
@@ -90,10 +93,12 @@ public class AuthService {
 
     public MessageResponse forgotPassword(ForgotPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
+                // don't reveal whether other emails exist
                 .orElseThrow(() -> new ResourceNotFoundException("No account found with this email"));
 
         String resetToken = UUID.randomUUID().toString();
         user.setResetToken(resetToken);
+        // keep reset tokens short-lived
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
@@ -104,13 +109,16 @@ public class AuthService {
 
     public MessageResponse resetPassword(ResetPasswordRequest request) {
         User user = userRepository.findByResetToken(request.getToken())
+                // reject unknown reset tokens
                 .orElseThrow(() -> new BadRequestException("Invalid reset token"));
 
+        // enforce token expiry window
         if (user.getResetTokenExpiry() == null || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Reset token has expired");
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        // clear token after successful reset
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
         userRepository.save(user);

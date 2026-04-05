@@ -1,80 +1,110 @@
-# Ledgera — Finance Data Processing & Access Control System
+# Ledgera Finance System
 
-A full-stack finance management application with role-based access control, JWT authentication, financial records management, and analytics dashboard.
+Ledgera is a full-stack finance tracking and analytics app with role-based access control, JWT authentication, and dashboard visualizations.
+
+## Checklist
+- [x] Project overview
+- [x] Accurate monorepo structure
+- [x] Local setup for backend + frontend
+- [x] Environment variable expectations
+- [x] Available scripts and commands
+- [x] Deployment docs index (Render/Vercel + Docker)
+- [x] Known current build note
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Backend** | Java 17+, Spring Boot 3.2, Spring Security, Spring Data JPA |
-| **Frontend** | React 18, Vite 5, Recharts, React Router, Axios |
-| **Database** | PostgreSQL (primary), H2 (optional dev profile) |
-| **Auth** | JWT (jjwt 0.12.x), BCrypt password hashing |
+- **Backend:** Java 17, Spring Boot 3.2.x, Spring Security, Spring Data JPA, Flyway
+- **Frontend:** React 18, Vite 5, React Router, Axios, Recharts
+- **Database:** PostgreSQL (default), H2 profile for local testing
+- **Auth:** JWT
 
-## Project Structure
+## Repository Structure
 
-```
+```text
 ledgera-finance-system/
-├── backend/                          # Spring Boot API
-│   ├── pom.xml
-│   └── src/main/java/com/ledgera/
-│       ├── config/                   # Security, CORS, DataInitializer
-│       ├── controller/               # REST controllers
-│       ├── dto/                      # Request/Response DTOs
-│       ├── entity/                   # JPA entities
-│       ├── enums/                    # Role, TransactionType
-│       ├── exception/                # Custom exceptions + global handler
-│       ├── repository/               # JPA repositories + specifications
-│       ├── security/                 # JWT provider, filter, UserDetails
-│       └── service/                  # Business logic
-├── frontend/                         # React SPA
-│   ├── src/
-│   │   ├── api/                      # Axios instance
-│   │   ├── components/               # Reusable UI components
-│   │   ├── context/                  # Auth context
-│   │   └── pages/                    # Page components
-│   └── vite.config.js
-└── README.md
+├─ backend/                     # Spring Boot API
+│  ├─ src/main/java/com/ledgera/
+│  │  ├─ config/
+│  │  ├─ controller/
+│  │  ├─ dto/
+│  │  ├─ entity/
+│  │  ├─ enums/
+│  │  ├─ exception/
+│  │  ├─ repository/
+│  │  ├─ security/
+│  │  └─ service/
+│  ├─ src/main/resources/
+│  │  ├─ application.properties
+│  │  ├─ application-h2.properties
+│  │  └─ db/migration/
+│  ├─ Dockerfile
+│  ├─ docker-compose.yml
+│  └─ pom.xml
+├─ frontend/                    # React + Vite SPA
+│  ├─ src/
+│  │  ├─ api/
+│  │  ├─ components/
+│  │  ├─ context/
+│  │  └─ pages/
+│  ├─ public/
+│  ├─ package.json
+│  ├─ vite.config.js
+│  └─ vercel.json
+├─ FULL_DEPLOYMENT.md
+├─ DEPLOYMENT_CHECKLIST.md
+└─ README.md
 ```
 
-## Getting Started
+## Prerequisites
 
-### Prerequisites
+- **Java 17+**
+- **Node.js 18+** (frontend includes `.nvmrc` with `18`)
+- **npm**
+- **PostgreSQL** (for default backend profile)
 
-- **Java 17+** (JDK installed and `JAVA_HOME` set)
-- **Maven 3.8+**
-- **Node.js 18+** and **npm**
-- **PostgreSQL** running locally
+## Environment Configuration
 
-### 1. Database Setup
+### Backend
 
-Create the PostgreSQL database:
+`backend/src/main/resources/application.properties` uses environment-based values (via dotenv support):
 
-```sql
-CREATE DATABASE ledgera_db;
+- `PORT` (default `8080`)
+- JDBC settings expected for PostgreSQL (URL/user/password)
+- Flyway enabled by default
+
+You can use `backend/.env.example` as reference for local variables.
+
+### Frontend
+
+Use `frontend/.env.local` for local API target if needed:
+
+```env
+VITE_API_URL=http://localhost:8080
 ```
 
-The default connection settings in `application.properties`:
-- URL: `jdbc:postgresql://localhost:5432/ledgera_db`
-- Username: `postgres`
-- Password: `postgres`
+For cloud deployments, `VITE_API_URL` is set in platform env vars (Vercel/Render).
 
-Update credentials in `backend/src/main/resources/application.properties` if yours differ.
+## Local Development
 
-### 2. Start Backend
+### 1) Start Backend
 
 ```bash
 cd backend
-mvn spring-boot:run
+mvnw.cmd spring-boot:run
 ```
 
-The API will be available at `http://localhost:8080`.
+Backend runs on:
 
-On first startup, a default admin user is created:
-- **Email:** `admin@ledgera.com`
-- **Password:** `Admin@123`
+- `http://localhost:8080`
 
-### 3. Start Frontend
+Optional H2 profile:
+
+```bash
+cd backend
+mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=h2
+```
+
+### 2) Start Frontend
 
 ```bash
 cd frontend
@@ -82,99 +112,61 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:5173`.
+Frontend runs on:
 
-### 4. Using H2 (Optional)
+- `http://localhost:5173`
 
-To use H2 in-memory database instead of PostgreSQL:
+## Build Commands
+
+### Backend
 
 ```bash
 cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=h2
+mvnw.cmd clean package
 ```
 
-H2 Console: `http://localhost:8080/h2-console`
+### Frontend
 
----
+```bash
+cd frontend
+npm run build
+npm run preview
+```
 
-## Default Credentials
+## Scripts
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@ledgera.com | Admin@123 |
+### Frontend (`frontend/package.json`)
 
-> Admin is auto-created on startup and cannot be registered manually.
+- `npm run dev` — start Vite dev server
+- `npm run build` — production build
+- `npm run preview` — preview production build
 
----
+## API Surface (High-Level)
 
-## API Endpoints
+- `/api/auth/*` — authentication and password reset
+- `/api/users/*` — user management (role-restricted)
+- `/api/records/*` — financial records CRUD/filtering
+- `/api/dashboard` — summary metrics and charts data
 
-### Authentication (Public)
+## Deployment
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | Login with email & password |
-| POST | `/api/auth/register` | Register (ANALYST/VIEWER only) |
-| POST | `/api/auth/forgot-password` | Generate reset token |
-| POST | `/api/auth/reset-password` | Reset password with token |
+### Quick Index
 
-### Users (ADMIN only)
+- Full stack: `FULL_DEPLOYMENT.md`
+- Checklist: `DEPLOYMENT_CHECKLIST.md`
+- Backend Docker: `backend/DOCKER.md`, `backend/DOCKER-QUICKSTART.md`
+- Frontend Vercel: `frontend/VERCEL.md`
+- Frontend Render: `frontend/render.md`
+- Frontend quick start: `frontend/QUICK-DEPLOY.md`
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/users` | List all users |
-| PUT | `/api/users/{id}/toggle-status` | Activate/deactivate user |
+### Typical Setup
 
-### Financial Records
+- **Backend:** Render (Docker) or any container host
+- **Frontend:** Vercel (Vite static build)
 
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| POST | `/api/records` | ADMIN | Create record |
-| PUT | `/api/records/{id}` | ADMIN | Update record |
-| DELETE | `/api/records/{id}` | ADMIN | Delete record |
-| GET | `/api/records` | ADMIN, ANALYST | List with filters & pagination |
-| GET | `/api/records/{id}` | ADMIN, ANALYST | Get single record |
+## Known Note (Current Repository State)
 
-**Query Parameters for GET /api/records:**
-- `startDate` (YYYY-MM-DD)
-- `endDate` (YYYY-MM-DD)
-- `category` (string)
-- `type` (INCOME/EXPENSE)
-- `page` (default: 0)
-- `size` (default: 20)
-- `sortBy` (default: date)
-- `direction` (asc/desc, default: desc)
-
-### Dashboard (All Authenticated)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/dashboard` | Aggregated analytics data |
-
----
-
-## Roles & Permissions
-
-| Feature | ADMIN | ANALYST | VIEWER |
-|---------|-------|---------|--------|
-| Dashboard | ✅ | ✅ | ✅ |
-| View Records | ✅ | ✅ | ❌ |
-| Create/Edit/Delete Records | ✅ | ❌ | ❌ |
-| User Management | ✅ | ❌ | ❌ |
-
----
-
-## Features
-
-- 🔐 **JWT Authentication** with secure token management
-- 👥 **Role-Based Access Control** (ADMIN, ANALYST, VIEWER)
-- 📊 **Dashboard** with summary cards, charts, and recent transactions
-- 📋 **Financial Records** with CRUD, filtering, and pagination
-- 🔄 **Forgot Password** flow with UUID reset tokens (15-min expiry)
-- 🎨 **Premium Dark UI** with navy blue, gold, and white theme
-- 📱 **Responsive Design** for desktop and mobile
-
----
+A backend compile issue is currently present in `LedgeraApplication.java` due to a `dotenv` import mismatch (`io.github.cdimascio.dotenv` not found at compile time). This is independent of this README update, but worth fixing before CI/CD hardening.
 
 ## License
 

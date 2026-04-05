@@ -35,7 +35,7 @@ export default function Sidebar() {
     <>
       <aside className="sidebar" id="sidebar">
         <div className="sidebar-header">
-          <Logo size="medium" className="sidebar-logo" />
+          <Logo size="medium" />
           <span className="sidebar-brand">Ledgera</span>
         </div>
 

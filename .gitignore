@@ -2,11 +2,13 @@
 # IDE
 # ===============================
 .idea/
-*.iml
 .vscode/
+*.iml
+*.ipr
+*.iws
 
 # ===============================
-# OS files
+# OS Files
 # ===============================
 .DS_Store
 Thumbs.db
@@ -17,12 +19,10 @@ Thumbs.db
 *.log
 *.out
 *.err
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
+logs/
 
 # ===============================
-# Environment files
+# Environment (IMPORTANT 🔐)
 # ===============================
 .env
 .env.*
@@ -31,6 +31,7 @@ pnpm-debug.log*
 # ===============================
 # Java / Spring Boot
 # ===============================
+target/
 backend/target/
 *.class
 *.jar
@@ -38,7 +39,7 @@ backend/target/
 *.nar
 .mvn/
 **/hs_err_pid*
-backend/mvnw-dist.zip
+mvnw-dist.zip
 
 # ===============================
 # Node / Frontend
@@ -57,8 +58,15 @@ coverage/
 .cache/
 
 # ===============================
-# Temp files
+# Temp Files
 # ===============================
 *.tmp
 *.swp
 *.swo
+*.bak
+
+# ===============================
+# Docker / Misc
+# ===============================
+Dockerfile~
+oradata/

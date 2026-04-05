@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import Layout from './components/Layout';
+import PublicLayout from './components/PublicLayout';
+import DashboardLayout from './components/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -25,29 +26,30 @@ export default function App() {
 
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route
-        path="/login"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
-      />
-      <Route
-        path="/register"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />}
-      />
-      <Route
-        path="/forgot-password"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <ForgotPasswordPage />}
-      />
+      {/* Public Routes — with footer via PublicLayout */}
+      <Route element={<PublicLayout />}>
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+        />
+        <Route
+          path="/register"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />}
+        />
+        <Route
+          path="/forgot-password"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <ForgotPasswordPage />}
+        />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+      </Route>
 
-      <Route path="/terms" element={<TermsPage />} />
-      <Route path="/privacy" element={<PrivacyPage />} />
-      <Route path="/contact" element={<ContactPage />} />
-
-      {/* Protected Routes */}
+      {/* Private Routes — NO footer, sidebar layout */}
       <Route
         element={
           <ProtectedRoute>
-            <Layout />
+            <DashboardLayout />
           </ProtectedRoute>
         }
       >

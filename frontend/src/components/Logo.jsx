@@ -1,28 +1,35 @@
-const PUBLIC_LOGO_PATH = '/gold-logo.png';
+import { useState } from 'react';
 
-// Note: logo lives in /public so it can be reused by favicon + app UI.
+const PRIMARY_SRC = '/gold-logo.png';
+const FALLBACK_SRC = '/ledgera-icon.svg';
 
 const sizeMap = {
-  small: { height: '32px', className: 'logo-small' },
-  medium: { height: 'clamp(28px, 3.4vw, 36px)', className: 'logo-medium' },
-  large: { height: 'clamp(60px, 8vw, 80px)', className: 'logo-large' },
+  small: { width: '32px', height: '32px' },
+  medium: { width: '40px', height: '40px' },
+  large: { width: '80px', height: '80px' },
+  xlarge: { width: '96px', height: '96px' },
 };
 
 export default function Logo({ size = 'medium', className = '', alt = 'Ledgera Logo' }) {
-  const config = sizeMap[size] || sizeMap.medium;
+  const [useFallback, setUseFallback] = useState(false);
+  const src = useFallback ? FALLBACK_SRC : PRIMARY_SRC;
+  const dims = sizeMap[size] || sizeMap.medium;
 
   return (
     <img
-      src={PUBLIC_LOGO_PATH}
+      src={src}
       alt={alt}
-      className={`logo ${config.className} ${className}`.trim()}
+      className={`logo ${className}`.trim()}
+      width={parseInt(dims.width, 10)}
+      height={parseInt(dims.height, 10)}
       style={{
-        height: config.height,
-        width: 'auto',
-        maxWidth: '100%',
+        width: dims.width,
+        height: dims.height,
         objectFit: 'contain',
         display: 'block',
+        flexShrink: 0,
       }}
+      onError={() => setUseFallback(true)}
     />
   );
 }

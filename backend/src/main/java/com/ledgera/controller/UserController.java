@@ -19,18 +19,21 @@ public class UserController {
     }
 
     @GetMapping
+    // only admins and analysts can list users
     @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/assignable")
+    // limit assignable list to elevated roles
     @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
     public ResponseEntity<List<UserResponse>> getAssignableUsers() {
         return ResponseEntity.ok(userService.getAssignableUsers());
     }
 
     @PutMapping("/{id}/toggle-status")
+    // only admins can activate/deactivate users
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> toggleUserStatus(@PathVariable Long id) {
         return ResponseEntity.ok(userService.toggleUserStatus(id));

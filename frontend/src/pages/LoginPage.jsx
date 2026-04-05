@@ -17,35 +17,17 @@ function FinancialHeroGraph() {
     >
       <defs>
         <linearGradient id="lp-gold-stroke" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#6b5a2a" stopOpacity="0.25" />
-          <stop offset="35%" stopColor="#e8cf6a" stopOpacity="1" />
-          <stop offset="100%" stopColor="#b8962e" stopOpacity="0.6" />
-        </linearGradient>
-        <filter id="lp-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.8" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <linearGradient id="lp-area" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(212,175,55,0.22)" />
-          <stop offset="100%" stopColor="rgba(10,10,10,0)" />
+          <stop offset="0%" stopColor="#6b5a2a" stopOpacity="0.35" />
+          <stop offset="40%" stopColor="#e8cf6a" stopOpacity="1" />
+          <stop offset="100%" stopColor="#b8962e" stopOpacity="0.65" />
         </linearGradient>
       </defs>
-      <g opacity="0.14" stroke="rgba(212,175,55,0.35)" strokeWidth="0.5">
-        <line x1="0" y1="40" x2="440" y2="40" />
-        <line x1="0" y1="80" x2="440" y2="80" />
-        <line x1="0" y1="120" x2="440" y2="120" />
-        <line x1="0" y1="160" x2="440" y2="160" />
-      </g>
       <path
         d="M 24 148 L 72 124 L 118 132 L 164 96 L 210 104 L 256 72 L 302 88 L 348 52 L 394 64 L 420 40"
         stroke="url(#lp-gold-stroke)"
         strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        filter="url(#lp-glow)"
         className="login-premium__graph-line"
       />
       <path
@@ -54,23 +36,15 @@ function FinancialHeroGraph() {
         strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity="0.65"
-        filter="url(#lp-glow)"
+        opacity="0.7"
         className="login-premium__graph-line login-premium__graph-line--2"
       />
       <path
         d="M 32 178 L 420 178"
-        stroke="rgba(212,175,55,0.25)"
+        stroke="rgba(212,175,55,0.22)"
         strokeWidth="1"
         strokeDasharray="4 8"
       />
-      <path
-        d="M 24 148 L 72 124 L 118 132 L 164 96 L 210 104 L 256 72 L 302 88 L 348 52 L 394 64 L 420 40 L 420 168 L 24 168 Z"
-        fill="url(#lp-area)"
-        className="login-premium__graph-pulse"
-      />
-      <circle cx="420" cy="40" r="5" fill="#e8cf6a" opacity="0.9" filter="url(#lp-glow)" className="login-premium__graph-pulse" />
-      <circle cx="256" cy="72" r="3.5" fill="#d4af37" opacity="0.75" className="login-premium__graph-pulse" />
     </svg>
   );
 }
@@ -184,14 +158,14 @@ export default function LoginPage() {
         <div className="login-premium__split">
         <section className="login-premium__brand">
           <div className="login-premium__brand-inner">
-            <div className="login-premium__logo">
-              <Logo size="large" />
-            </div>
-            <div className="login-premium__headline-block">
+            <div className="login-premium__hero-stack">
+              <div className="login-premium__logo">
+                <Logo size="xlarge" />
+              </div>
               <h1 className="login-premium__title">Ledgera</h1>
               <p className="login-premium__tagline">
-                Control your money.{' '}
-                <span className="login-premium__tagline-accent">Build your future.</span>
+                Control your money.
+                <span className="login-premium__tagline-accent"> Build your future.</span>
               </p>
             </div>
             <div className="login-premium__graph-wrap">
@@ -284,22 +258,6 @@ export default function LoginPage() {
         </section>
         </div>
       </div>
-
-      <footer className="login-premium__legal-footer">
-        <span className="login-premium__legal-copy">© 2026 Ledgera</span>
-        <span className="login-premium__legal-sep" aria-hidden>
-          ·
-        </span>
-        <Link to="/privacy">Privacy</Link>
-        <span className="login-premium__legal-sep" aria-hidden>
-          ·
-        </span>
-        <Link to="/terms">Terms</Link>
-        <span className="login-premium__legal-sep" aria-hidden>
-          ·
-        </span>
-        <Link to="/contact">Contact</Link>
-      </footer>
     </div>
   );
 }

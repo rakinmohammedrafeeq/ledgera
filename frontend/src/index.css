@@ -3,50 +3,58 @@
    Premium dark fintech theme with navy blue, gold, and white
    ============================================================ */
 
-/* ---- CSS Custom Properties ---- */
+/* ---- CSS Custom Properties ----
+   Light theme on :root; dark overrides on html.dark (class toggled by ThemeProvider).
+   Mirrors Tailwind-style class dark mode without requiring Tailwind. */
 :root {
-  /* Core Colors */
-  --bg-darkest: #0a0a0a;
-  --bg-dark: #111111;
-  --bg-sidebar: #0f0f0f;
-  --bg-card: #111111;
-  --bg-card-hover: #151515;
-  --bg-input: #0f0f0f;
-  --bg-modal-overlay: rgba(10, 10, 10, 0.78);
+  /* Global theme tokens (light) — use these everywhere for consistent contrast */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --card-bg: #ffffff;
 
-  /* Gold Palette */
-  --gold-primary: #d4af37;
-  --gold-light: #e3c15a;
-  --gold-subtle: rgba(212, 175, 55, 0.12);
-  --gold-border: rgba(212, 175, 55, 0.25);
-  --gold-glow: rgba(212, 175, 55, 0.2);
-
-  /* Text Colors */
-  --text-primary: #f5f5f5;
-  --text-secondary: #a1a1aa;
+  --text-primary: #111827;
+  --text-secondary: #374151;
   --text-muted: #6b7280;
-  --text-gold: #d4af37;
 
-  /* Semantic Colors */
-  --color-income: #d4af37;
-  --color-income-bg: rgba(212, 175, 55, 0.12);
-  --color-expense: #ef4444;
-  --color-expense-bg: rgba(239, 68, 68, 0.12);
-  --color-info: #9ca3af;
-  --color-info-bg: rgba(156, 163, 175, 0.12);
-  --color-warning: #d4af37;
-  --color-success: #d4af37;
-  --color-danger: #ef4444;
+  --border-color: #e5e7eb;
 
-  /* Borders */
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-gold: rgba(212, 175, 55, 0.25);
+  --tooltip-bg: #ffffff;
+  --tooltip-text: #111827;
 
-  /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.32);
-  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.4);
-  --shadow-gold: 0 8px 26px rgba(212, 175, 55, 0.12);
+  /* Solid surfaces in light mode (avoid washed-out glass) */
+  --topbar-bg: #ffffff;
+  --glass-bg: #ffffff;
+  --glass-border: var(--border-color);
+  --dash-hero-glass: #ffffff;
+  --dash-hero-border: var(--border-color);
+
+  /* Keep inputs crisp */
+  --bg-input: #ffffff;
+
+  /* Gold — muted for light backgrounds */
+  --gold-primary: #b8860b;
+  --gold-light: #c9a227;
+  --gold-subtle: rgba(184, 134, 11, 0.1);
+  --gold-border: rgba(184, 134, 11, 0.28);
+  --gold-glow: rgba(184, 134, 11, 0.15);
+
+  --color-income: #b8860b;
+  --color-income-bg: rgba(184, 134, 11, 0.12);
+  --color-expense: #dc2626;
+  --color-expense-bg: rgba(220, 38, 38, 0.1);
+  --color-info: #64748b;
+  --color-info-bg: rgba(100, 116, 139, 0.1);
+  --color-warning: #b8860b;
+  --color-success: #15803d;
+  --color-danger: #dc2626;
+
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 12px 36px rgba(15, 23, 42, 0.12);
+  --shadow-gold: 0 8px 26px rgba(184, 134, 11, 0.15);
+
+  --bg-spot-gold-strong: rgba(201, 162, 39, 0.14);
+  --bg-spot-gold-soft: rgba(201, 162, 39, 0.08);
 
   /* Sizing */
   --sidebar-width: 260px;
@@ -84,6 +92,62 @@
   --transition-slow: 360ms ease;
 }
 
+html.dark {
+  /* Global theme tokens (dark) */
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111111;
+  --card-bg: #111111;
+
+  --text-primary: #f5f5f5;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-gold: rgba(212, 175, 55, 0.25);
+
+  --tooltip-bg: #111111;
+  --tooltip-text: #f5f5f5;
+
+  /* Map existing design system variables to global tokens */
+  --bg-darkest: var(--bg-primary);
+  --bg-dark: var(--bg-secondary);
+  --bg-sidebar: #0f0f0f;
+  --bg-card: var(--card-bg);
+
+  --gold-primary: #d4af37;
+  --gold-light: #e3c15a;
+  --gold-subtle: rgba(212, 175, 55, 0.12);
+  --gold-border: rgba(212, 175, 55, 0.25);
+  --gold-glow: rgba(212, 175, 55, 0.2);
+
+  --color-income: #d4af37;
+  --color-income-bg: rgba(212, 175, 55, 0.12);
+  --color-expense: #ef4444;
+  --color-expense-bg: rgba(239, 68, 68, 0.12);
+  --color-info: #9ca3af;
+  --color-info-bg: rgba(156, 163, 175, 0.12);
+  --color-warning: #d4af37;
+  --color-success: #d4af37;
+  --color-danger: #ef4444;
+
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.4);
+  --shadow-gold: 0 8px 26px rgba(212, 175, 55, 0.12);
+
+  --bg-spot-gold-strong: rgba(212, 175, 55, 0.1);
+  --bg-spot-gold-soft: rgba(212, 175, 55, 0.06);
+  --topbar-bg: rgba(10, 10, 10, 0.88);
+  --glass-bg: rgba(17, 17, 17, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-shadow-hover: 0 16px 32px rgba(0, 0, 0, 0.45);
+  --dash-hero-border: rgba(255, 255, 255, 0.06);
+  --dash-hero-glass: rgba(17, 17, 17, 0.64);
+
+  --bg-input: #0f0f0f;
+}
+
 /* ---- Reset & Base ---- */
 *,
 *::before,
@@ -102,14 +166,30 @@ body {
   font-family: var(--font-family, 'Inter', sans-serif);
   font-size: var(--text-body);
   background:
-    radial-gradient(circle at 15% 10%, rgba(212, 175, 55, 0.10) 0%, transparent 55%),
-    radial-gradient(circle at 85% 75%, rgba(212, 175, 55, 0.06) 0%, transparent 60%),
+    radial-gradient(circle at 15% 10%, var(--bg-spot-gold-strong) 0%, transparent 55%),
+    radial-gradient(circle at 85% 75%, var(--bg-spot-gold-soft) 0%, transparent 60%),
     var(--bg-darkest);
   color: var(--text-primary);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease;
+}
+
+.sidebar,
+.main-content,
+.topbar,
+.glass-card,
+.insight-card,
+.auth-page {
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
 }
 
 a {
@@ -174,9 +254,10 @@ a:hover {
 }
 
 .auth-branding-title {
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 2.5rem;
-  font-weight: 800;
-  letter-spacing: -0.6px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--text-primary);
 }
 
@@ -224,8 +305,8 @@ a:hover {
   width: 100%;
   max-width: 440px;
   padding: 44px 40px;
-  background: rgba(17, 17, 17, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(12px);
@@ -373,9 +454,10 @@ a:hover {
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 1;
   cursor: not-allowed;
-  transform: none;
+  filter: grayscale(25%) saturate(65%);
+  background: var(--bg-secondary);
 }
 
 .btn-full {
@@ -519,18 +601,12 @@ a.auth-back-link {
   border-bottom: 1px solid var(--border-color);
 }
 
-.sidebar-logo {
-  height: clamp(28px, 3.2vw, 36px) !important;
-  width: auto !important;
-  max-width: 100%;
-  object-fit: contain;
-}
-
 .sidebar-brand {
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
   color: var(--gold-primary);
-  letter-spacing: -0.3px;
+  letter-spacing: 0.04em;
 }
 
 .sidebar-nav {
@@ -644,8 +720,7 @@ a.auth-back-link {
 /* ---- Topbar ---- */
 .topbar {
   height: var(--topbar-height);
-  background: rgba(10, 10, 10, 0.88);
-  backdrop-filter: blur(14px);
+  background: var(--topbar-bg);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -663,9 +738,6 @@ a.auth-back-link {
 }
 
 .topbar-logo {
-  height: 32px !important;
-  width: auto !important;
-  max-width: 100%;
   object-fit: contain;
   margin-right: 10px;
 }
@@ -839,13 +911,119 @@ a.auth-back-link {
 .charts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 32px;
+  gap: var(--space-gap);
+  margin-bottom: var(--space-gap);
+  align-items: start;
 }
 
+/* Floating charts — fully blended, no card / no box behind plot */
+.chart-surface {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  background: transparent !important;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  backdrop-filter: none;
+}
+
+/* Soft gold wash behind plot only (skip empty states) */
+.chart-surface:has(.chart-surface__viz)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2.25rem;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    rgba(255, 215, 0, 0.08),
+    transparent 60%
+  );
+  opacity: 0.9;
+}
+
+.chart-surface__title {
+  position: relative;
+  z-index: 1;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.chart-surface__subtitle {
+  position: relative;
+  z-index: 1;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 0.65rem;
+}
+
+.chart-surface--pie.chart-surface:has(.chart-surface__viz)::before {
+  display: none;
+}
+
+.chart-surface--pie .chart-surface__viz > div {
+  filter: none !important;
+}
+
+.recharts-pie .recharts-pie-labels text {
+  fill: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chart-surface__viz {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  background: transparent !important;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.chart-surface__viz > div {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.25));
+}
+
+.chart-surface__viz .recharts-responsive-container,
+.chart-surface__viz .recharts-wrapper,
+.chart-surface__viz svg.recharts-surface {
+  background: transparent !important;
+  outline: none;
+}
+
+.chart-surface__viz .recharts-legend-wrapper {
+  background: transparent !important;
+}
+
+.empty-state--chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  min-height: 200px;
+}
+
+/* Legacy chart-card — keep for any other usage */
 .chart-card {
-  background: rgba(17, 17, 17, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   padding: 24px;
   transition: border-color var(--transition-base);
@@ -864,8 +1042,8 @@ a.auth-back-link {
 
 /* ---- Recent Transactions ---- */
 .recent-transactions {
-  background: rgba(17, 17, 17, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   padding: 24px;
 }
@@ -1026,8 +1204,8 @@ a.auth-back-link {
 }
 
 .records-card {
-  background: rgba(17, 17, 17, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   overflow: hidden;
 }
@@ -1083,8 +1261,10 @@ a.auth-back-link {
 }
 
 .pagination-btn:disabled {
-  opacity: 0.4;
+  opacity: 1;
   cursor: not-allowed;
+  filter: grayscale(25%) saturate(65%);
+  background: var(--bg-secondary);
 }
 
 .pagination-btn--icon {
@@ -1134,8 +1314,8 @@ a.auth-back-link {
 }
 
 .modal {
-  background: rgba(17, 17, 17, 0.82);
-  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--border-radius-lg);
   padding: 32px;
   width: 100%;
@@ -1202,8 +1382,8 @@ a.auth-back-link {
    ============================================================ */
 
 .users-card {
-  background: rgba(17, 17, 17, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   overflow: hidden;
 }
@@ -1420,10 +1600,10 @@ a.auth-back-link {
 /* --- Futuristic dashboard hero --- */
 .dash-hero {
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--dash-hero-border);
   background:
-    radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.16) 0%, transparent 55%),
-    rgba(17, 17, 17, 0.64);
+    radial-gradient(circle at 20% 30%, var(--bg-spot-gold-strong) 0%, transparent 55%),
+    var(--dash-hero-glass);
   backdrop-filter: blur(12px);
   box-shadow: var(--shadow-lg);
   padding: 24px;
@@ -1461,7 +1641,7 @@ a.auth-back-link {
 }
 
 .hero-balance-label {
-  color: rgba(245, 245, 245, 0.62);
+  color: var(--text-secondary);
   font-size: 0.85rem;
   margin-bottom: 6px;
 }
@@ -1504,8 +1684,8 @@ a.auth-back-link {
 }
 
 .glass-card {
-  background: rgba(17, 17, 17, 0.70);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 18px;
   padding: 18px;
   backdrop-filter: blur(12px);
@@ -1515,8 +1695,8 @@ a.auth-back-link {
 
 .glass-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(212, 175, 55, 0.22);
-  box-shadow: 0 16px 32px rgba(0,0,0,0.45);
+  border-color: var(--border-gold);
+  box-shadow: var(--glass-shadow-hover);
 }
 
 .glass-card-lg {
@@ -1531,10 +1711,11 @@ a.auth-back-link {
 }
 
 .card-label {
-  color: rgba(245, 245, 245, 0.6);
+  color: var(--text-muted);
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+  opacity: 0.9;
 }
 
 .card-value {
@@ -1581,15 +1762,16 @@ a.auth-back-link {
 
 .card-meta {
   margin-top: 14px;
-  color: rgba(245, 245, 245, 0.55);
+  color: var(--text-secondary);
   font-size: 0.86rem;
+  opacity: 0.9;
 }
 
 /* --- AI insight card --- */
 .insight-card {
   position: relative;
-  background: rgba(17, 17, 17, 0.68);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 18px;
   padding: 18px;
   backdrop-filter: blur(12px);
@@ -1703,8 +1885,8 @@ a.auth-back-link {
 }
 
 .toast {
-  background: rgba(17, 17, 17, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 12px 12px;
   backdrop-filter: blur(12px);
@@ -1769,21 +1951,6 @@ a.auth-back-link {
   filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.35)) drop-shadow(0 0 18px rgba(212, 175, 55, 0.16));
 }
 
-.topbar-logo {
-  height: 32px !important;
-  width: auto !important;
-  max-width: 100%;
-  object-fit: contain;
-  margin-right: 10px;
-}
-
-.sidebar-logo {
-  height: clamp(28px, 3.2vw, 36px) !important;
-  width: auto !important;
-  max-width: 100%;
-  object-fit: contain;
-}
-
 .login-premium__logo .logo,
 .auth-logo img {
   height: clamp(60px, 8vw, 80px) !important;
@@ -1792,4 +1959,39 @@ a.auth-back-link {
   filter:
     drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45))
     drop-shadow(0 0 26px rgba(212, 175, 55, 0.22));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    transition:
+      background-color 0.25s ease,
+      color 0.25s ease,
+      border-color 0.25s ease;
+  }
+}
+
+/* Light-mode clarity overrides: remove blur/translucent surfaces and ensure text is fully opaque */
+html:not(.dark) .topbar,
+html:not(.dark) .dash-hero,
+html:not(.dark) .glass-card,
+html:not(.dark) .insight-card,
+html:not(.dark) .auth-card,
+html:not(.dark) .modal-overlay,
+html:not(.dark) .modal,
+html:not(.dark) .toast {
+  backdrop-filter: none !important;
+}
+
+html:not(.dark) .chart-surface__viz > div {
+  filter: none !important;
+}
+
+html:not(.dark) .card-label,
+html:not(.dark) .card-meta,
+html:not(.dark) .chart-surface__subtitle {
+  opacity: 1 !important;
+}
+
+html:not(.dark) .data-table tbody tr:hover {
+  background: rgba(17, 24, 39, 0.03);
 }

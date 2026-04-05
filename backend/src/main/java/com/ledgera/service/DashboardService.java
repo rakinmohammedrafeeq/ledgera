@@ -31,6 +31,7 @@ public class DashboardService {
 
     public DashboardResponse getDashboardData() {
         User currentUser = getCurrentUser();
+        // viewers only see their own aggregates
         boolean restrictToUser = currentUser.getRole() == Role.VIEWER;
 
         BigDecimal totalIncome = restrictToUser
@@ -39,6 +40,7 @@ public class DashboardService {
         BigDecimal totalExpenses = restrictToUser
                 ? recordRepository.sumByTypeAndUser(TransactionType.EXPENSE, currentUser.getId())
                 : recordRepository.sumByType(TransactionType.EXPENSE);
+        // calculate net balance for the dashboard
         BigDecimal netBalance = totalIncome.subtract(totalExpenses);
 
         List<CategoryTotal> categoryTotals = buildCategoryTotals(restrictToUser ? currentUser.getId() : null);
@@ -79,6 +81,7 @@ public class DashboardService {
             } else {
                 ct.setExpense(amount);
             }
+            // keep totals aligned with income/expense updates
             ct.setTotal(ct.getIncome().subtract(ct.getExpense()));
         }
 
@@ -138,10 +141,12 @@ public class DashboardService {
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // stop unauthenticated access early
         if (authentication == null || authentication.getName() == null) {
             throw new ForbiddenException("Unauthenticated request");
         }
         return userRepository.findByEmail(authentication.getName())
+                // authentication should always map to a real user
                 .orElseThrow(() -> new ForbiddenException("User not found"));
     }
 }

@@ -1,6 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var d = document.documentElement;
+          if (t === 'light') d.classList.remove('dark');
+          else if (t === 'dark') d.classList.add('dark');
+          else if (window.matchMedia('(prefers-color-scheme: light)').matches)
+            d.classList.remove('dark');
+          else d.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/gold-logo.png?v=10" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -25,6 +25,7 @@ public class FinancialRecordController {
     }
 
     @PostMapping
+    // only analysts can create records
     @PreAuthorize("hasRole('ANALYST')")
     public ResponseEntity<FinancialRecordResponse> createRecord(
             @Valid @RequestBody FinancialRecordRequest request) {
@@ -32,6 +33,7 @@ public class FinancialRecordController {
     }
 
     @PutMapping("/{id}")
+    // admins and analysts can update records
     @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
     public ResponseEntity<FinancialRecordResponse> updateRecord(
             @PathVariable Long id,
@@ -40,6 +42,7 @@ public class FinancialRecordController {
     }
 
     @DeleteMapping("/{id}")
+    // admins and analysts can delete records
     @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
     public ResponseEntity<Void> deleteRecord(@PathVariable Long id) {
         recordService.deleteRecord(id);
@@ -47,6 +50,7 @@ public class FinancialRecordController {
     }
 
     @GetMapping
+    // all roles can read records
     @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST', 'VIEWER')")
     public ResponseEntity<Page<FinancialRecordResponse>> getAllRecords(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -61,6 +65,7 @@ public class FinancialRecordController {
     }
 
     @GetMapping("/{id}")
+    // all roles can read individual records
     @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST', 'VIEWER')")
     public ResponseEntity<FinancialRecordResponse> getRecordById(@PathVariable Long id) {
         return ResponseEntity.ok(recordService.getRecordById(id));
