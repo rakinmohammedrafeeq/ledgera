@@ -22,15 +22,15 @@ import java.util.stream.Collectors;
 public class DashboardService {
 
     private final FinancialRecordRepository recordRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
-    public DashboardService(FinancialRecordRepository recordRepository, UserRepository userRepository) {
+    public DashboardService(FinancialRecordRepository recordRepository, UserRepository userRepository, CurrentUserService currentUserService) {
         this.recordRepository = recordRepository;
-        this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
     }
 
     public DashboardResponse getDashboardData() {
-        User currentUser = getCurrentUser();
+        User currentUser = currentUserService.requireCurrentUser();
         // viewers only see their own aggregates
         boolean restrictToUser = currentUser.getRole() == Role.VIEWER;
 
@@ -40,6 +40,12 @@ public class DashboardService {
         BigDecimal totalExpenses = restrictToUser
                 ? recordRepository.sumByTypeAndUser(TransactionType.EXPENSE, currentUser.getId())
                 : recordRepository.sumByType(TransactionType.EXPENSE);
+        if (totalIncome == null) {
+            totalIncome = BigDecimal.ZERO;
+        }
+        if (totalExpenses == null) {
+            totalExpenses = BigDecimal.ZERO;
+        }
         // calculate net balance for the dashboard
         BigDecimal netBalance = totalIncome.subtract(totalExpenses);
 
@@ -64,9 +70,19 @@ public class DashboardService {
         Map<String, CategoryTotal> categoryMap = new LinkedHashMap<>();
 
         for (Object[] row : results) {
-            String category = (String) row[0];
-            TransactionType type = (TransactionType) row[1];
-            BigDecimal amount = (BigDecimal) row[2];
+            if (row == null || row.length < 3) {
+                continue;
+            }
+            String category = row[0] != null ? row[0].toString() : "Uncategorized";
+            TransactionType type = row[1] instanceof TransactionType
+                    ? (TransactionType) row[1]
+                    : null;
+            BigDecimal amount = row[2] instanceof BigDecimal
+                    ? (BigDecimal) row[2]
+                    : BigDecimal.ZERO;
+            if (type == null) {
+                continue;
+            }
 
             CategoryTotal ct = categoryMap.computeIfAbsent(category,
                     k -> CategoryTotal.builder()
@@ -81,7 +97,6 @@ public class DashboardService {
             } else {
                 ct.setExpense(amount);
             }
-            // keep totals aligned with income/expense updates
             ct.setTotal(ct.getIncome().subtract(ct.getExpense()));
         }
 
@@ -95,17 +110,30 @@ public class DashboardService {
         Map<String, MonthlyTrend> trendMap = new LinkedHashMap<>();
 
         for (Object[] row : results) {
-            int year = ((Number) row[0]).intValue();
-            int month = ((Number) row[1]).intValue();
-            TransactionType type = (TransactionType) row[2];
-            BigDecimal amount = (BigDecimal) row[3];
+            if (row == null || row.length < 4) {
+                continue;
+            }
+            int year = row[0] instanceof Number ? ((Number) row[0]).intValue() : 0;
+            int month = row[1] instanceof Number ? ((Number) row[1]).intValue() : 0;
+            TransactionType type = row[2] instanceof TransactionType
+                    ? (TransactionType) row[2]
+                    : null;
+            BigDecimal amount = row[3] instanceof BigDecimal
+                    ? (BigDecimal) row[3]
+                    : BigDecimal.ZERO;
+            if (type == null || year == 0 || month == 0) {
+                continue;
+            }
 
             String key = year + "-" + month;
+            String monthName = month >= 1 && month <= 12
+                    ? Month.of(month).getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+                    : "N/A";
             MonthlyTrend trend = trendMap.computeIfAbsent(key,
                     k -> MonthlyTrend.builder()
                             .year(year)
                             .month(month)
-                            .monthName(Month.of(month).getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
+                            .monthName(monthName)
                             .income(BigDecimal.ZERO)
                             .expense(BigDecimal.ZERO)
                             .build());
@@ -137,16 +165,5 @@ public class DashboardService {
                 .userName(record.getUser() != null ? record.getUser().getName() : null)
                 .userEmail(record.getUser() != null ? record.getUser().getEmail() : null)
                 .build()).collect(Collectors.toList());
-    }
-
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        // stop unauthenticated access early
-        if (authentication == null || authentication.getName() == null) {
-            throw new ForbiddenException("Unauthenticated request");
-        }
-        return userRepository.findByEmail(authentication.getName())
-                // authentication should always map to a real user
-                .orElseThrow(() -> new ForbiddenException("User not found"));
     }
 }

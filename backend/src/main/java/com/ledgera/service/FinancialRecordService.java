@@ -27,14 +27,16 @@ public class FinancialRecordService {
 
     private final FinancialRecordRepository recordRepository;
     private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
-    public FinancialRecordService(FinancialRecordRepository recordRepository, UserRepository userRepository) {
+    public FinancialRecordService(FinancialRecordRepository recordRepository, UserRepository userRepository, CurrentUserService currentUserService) {
         this.recordRepository = recordRepository;
         this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
     }
 
     public FinancialRecordResponse createRecord(FinancialRecordRequest request) {
-        User currentUser = getCurrentUser();
+        User currentUser = currentUserService.requireCurrentUser();
         // only analysts are allowed to create records
         if (currentUser.getRole() != Role.ANALYST) {
             throw new ForbiddenException("Only ANALYST users can create records");
@@ -61,7 +63,7 @@ public class FinancialRecordService {
                 // fail fast if the record doesn't exist
                 .orElseThrow(() -> new ResourceNotFoundException("Record not found with id: " + id));
 
-        User currentUser = getCurrentUser();
+        User currentUser = currentUserService.requireCurrentUser();
         // viewers can read but not modify records
         if (currentUser.getRole() == Role.VIEWER) {
             throw new ForbiddenException("VIEWER users cannot update records");
@@ -86,7 +88,7 @@ public class FinancialRecordService {
                 // fail fast if the record doesn't exist
                 .orElseThrow(() -> new ResourceNotFoundException("Record not found with id: " + id));
 
-        User currentUser = getCurrentUser();
+        User currentUser = currentUserService.requireCurrentUser();
         // viewers can read but not delete records
         if (currentUser.getRole() == Role.VIEWER) {
             throw new ForbiddenException("VIEWER users cannot delete records");
@@ -106,7 +108,7 @@ public class FinancialRecordService {
 
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        User currentUser = getCurrentUser();
+        User currentUser = currentUserService.requireCurrentUser();
         // viewers only see their own records; others see all
         Specification<FinancialRecord> spec = currentUser.getRole() == Role.VIEWER
                 ? FinancialRecordSpecification.withFilters(startDate, endDate, category, type, currentUser.getId())
@@ -120,7 +122,7 @@ public class FinancialRecordService {
                 // fail fast if the record doesn't exist
                 .orElseThrow(() -> new ResourceNotFoundException("Record not found with id: " + id));
 
-        User currentUser = getCurrentUser();
+        User currentUser = currentUserService.requireCurrentUser();
         // viewers can only access their own records
         if (currentUser.getRole() == Role.VIEWER && !record.getUser().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("VIEWER users can only access their own records");
@@ -143,16 +145,5 @@ public class FinancialRecordService {
                 .userName(record.getUser() != null ? record.getUser().getName() : null)
                 .userEmail(record.getUser() != null ? record.getUser().getEmail() : null)
                 .build();
-    }
-
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        // stop unauthenticated access early
-        if (authentication == null || authentication.getName() == null) {
-            throw new ForbiddenException("Unauthenticated request");
-        }
-        return userRepository.findByEmail(authentication.getName())
-                // authentication should always map to a real user
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }
