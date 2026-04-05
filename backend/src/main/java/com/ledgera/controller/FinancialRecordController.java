@@ -54,14 +54,19 @@ public class FinancialRecordController {
     @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST', 'VIEWER')")
     public ResponseEntity<Page<FinancialRecordResponse>> getAllRecords(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) TransactionType type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "date") String sortBy,
             @RequestParam(defaultValue = "desc") String direction) {
-        return ResponseEntity.ok(recordService.getAllRecords(startDate, endDate, category, type, page, size, sortBy, direction));
+        String safeSortBy = switch (sortBy) {
+            case "date", "amount", "category", "type", "createdAt", "updatedAt", "id" -> sortBy;
+            default -> "date";
+        };
+        String safeDirection = "asc".equalsIgnoreCase(direction) ? "asc" : "desc";
+        return ResponseEntity.ok(recordService.getAllRecords(startDate, endDate, category, type, page, size, safeSortBy, safeDirection));
     }
 
     @GetMapping("/{id}")
