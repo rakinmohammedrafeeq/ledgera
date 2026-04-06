@@ -132,13 +132,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* AI-like insight */}
-        <div className="insight-card">
-          <div className="insight-badge">AI Insight</div>
-          <div className="insight-text">You spent <span className="text-gold">18%</span> more on <span style={{ color: 'var(--text-primary)' }}>Food</span> this week.</div>
-          <div className="insight-sub">Try setting a weekly cap to keep the trend under control.</div>
-        </div>
-
         {/* Charts */}
         <div className="charts-grid">
           <MonthlyTrendsChart data={data?.monthlyTrends} />

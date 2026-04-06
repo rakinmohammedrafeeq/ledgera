@@ -183,7 +183,6 @@ body {
 .main-content,
 .topbar,
 .glass-card,
-.insight-card,
 .auth-page {
   transition:
     background-color 0.35s ease,
@@ -1893,57 +1892,11 @@ a.auth-back-link {
 }
 
 /* --- AI insight card --- */
-.insight-card {
-  position: relative;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 18px;
-  padding: 18px;
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-md);
-  margin-bottom: 20px;
-}
 
-.insight-card::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 18px;
-  background: radial-gradient(circle at 20% 20%, rgba(212, 175, 55, 0.16), transparent 55%);
-  pointer-events: none;
-  opacity: 0.9;
-}
+/* ============================================================
+   FLOATING ACTION BUTTON
+   ============================================================ */
 
-.insight-badge {
-  position: relative;
-  display: inline-flex;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(212, 175, 55, 0.22);
-  background: rgba(212, 175, 55, 0.10);
-  color: rgba(212, 175, 55, 0.95);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.insight-text {
-  position: relative;
-  margin-top: 12px;
-  font-size: 1.02rem;
-  font-weight: 650;
-  color: var(--text-primary);
-}
-
-.insight-sub {
-  position: relative;
-  margin-top: 6px;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-/* --- Floating Action Button --- */
 .fab {
   position: fixed;
   right: 22px;
@@ -2099,7 +2052,6 @@ a.auth-back-link {
 html:not(.dark) .topbar,
 html:not(.dark) .dash-hero,
 html:not(.dark) .glass-card,
-html:not(.dark) .insight-card,
 html:not(.dark) .auth-card,
 html:not(.dark) .modal-overlay,
 html:not(.dark) .modal,
@@ -2137,4 +2089,3 @@ input[type='password']::-ms-clear {
 input[type='password']::-webkit-textfield-decoration-container {
   visibility: visible;
 }
-
