@@ -11,11 +11,11 @@ export default function BackendLoadingOverlay({ show, fallback }) {
         <p>Our server is currently starting up after inactivity.</p>
         <p>This is expected and may take up to a few minutes (~3 minutes).</p>
         <p>Thank you for your patience.</p>
-        {fallback && (
-          <p className="backend-loading__fallback">
-            This is taking longer than expected. Please try again.
-          </p>
-        )}
+        {/*{fallback && (*/}
+        {/*  <p className="backend-loading__fallback">*/}
+        {/*    This is taking longer than expected. Please try again.*/}
+        {/*  </p>*/}
+        {/*)}*/}
       </div>
     </div>
   );

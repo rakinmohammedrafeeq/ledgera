@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BackendLoadingOverlay from '../components/BackendLoadingOverlay';
@@ -13,6 +14,7 @@ export default function RegisterPage() {
     password: '',
     role: 'ANALYST',
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -102,17 +104,29 @@ export default function RegisterPage() {
 
               <div className="form-group">
                 <label htmlFor="register-password">Password</label>
-                <input
-                  id="register-password"
-                  type="password"
-                  name="password"
-                  className="form-input"
-                  placeholder="Min 6 characters"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  minLength={6}
-                />
+                <div className="password-input-wrap">
+                  <input
+                    id="register-password"
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    className="form-input form-input--password"
+                    placeholder="Min 6 characters"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <div className="form-group">

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import BackendLoadingOverlay from '../components/BackendLoadingOverlay';
@@ -87,6 +88,7 @@ function IconInsight() {
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -229,16 +231,27 @@ export default function LoginPage() {
 
                   <div className="form-group">
                     <label htmlFor="login-password">Password</label>
-                    <input
-                      id="login-password"
-                      type="password"
-                      className="form-input"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      autoComplete="current-password"
-                    />
+                    <div className="password-input-wrap">
+                      <input
+                        id="login-password"
+                        type={showPassword ? 'text' : 'password'}
+                        className="form-input form-input--password"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        aria-pressed={showPassword}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   <button

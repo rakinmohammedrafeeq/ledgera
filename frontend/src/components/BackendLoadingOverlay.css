@@ -10,6 +10,12 @@
   backdrop-filter: blur(6px);
 }
 
+/* Light theme overlay: brighter/cleaner with softer tint for contrast */
+html:not(.dark) .backend-loading {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px);
+}
+
 .backend-loading__card {
   max-width: 520px;
   width: 100%;
@@ -22,9 +28,19 @@
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
 }
 
+/* Light theme card surface: white, crisp border, and softer shadow */
+html:not(.dark) .backend-loading__card {
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--border-color) 80%, var(--gold-border) 20%);
+  box-shadow:
+    0 18px 44px rgba(15, 23, 42, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
 .backend-loading__card h2 {
   margin: 16px 0 12px;
   font-size: 1.4rem;
+  color: var(--text-primary);
 }
 
 .backend-loading__card p {
@@ -33,9 +49,29 @@
   line-height: 1.5;
 }
 
-.backend-loading__fallback {
-  margin-top: 16px;
-  color: #f87171;
-  font-weight: 600;
+/* Light theme paragraph text: avoid washed-out muted tone */
+html:not(.dark) .backend-loading__card p {
+  color: var(--text-secondary);
 }
 
+/* Spinner: theme-aware ring with gold accent */
+.backend-loading .spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.22);
+  border-top-color: var(--gold-primary);
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+html:not(.dark) .backend-loading .spinner {
+  border-color: rgba(15, 23, 42, 0.18);
+  border-top-color: var(--gold-primary);
+}
+
+.backend-loading__fallback {
+  margin-top: 16px;
+  color: var(--color-danger, #dc2626);
+  font-weight: 600;
+}
