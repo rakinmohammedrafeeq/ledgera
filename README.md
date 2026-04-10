@@ -2,15 +2,6 @@
 
 Ledgera is a full-stack finance tracking and analytics app with role-based access control, JWT authentication, and dashboard visualizations.
 
-## Checklist
-- [x] Project overview
-- [x] Accurate monorepo structure
-- [x] Local setup for backend + frontend
-- [x] Environment variable expectations
-- [x] Available scripts and commands
-- [x] Deployment docs index (Render/Vercel + Docker)
-- [x] Known current build note
-
 ## Tech Stack
 
 - **Backend:** Java 17, Spring Boot 3.2.x, Spring Security, Spring Data JPA, Flyway
