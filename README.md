@@ -1,4 +1,8 @@
-# Ledgera Finance System
+<p>
+  <img src="frontend/public/gold-logo.png" alt="AlliedEdge Logo" width="140"/>
+</p>
+
+# Ledgera - Finance System
 
 Ledgera is a full-stack finance tracking and analytics app with role-based access control, JWT authentication, and dashboard visualizations.
 
