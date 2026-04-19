@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/rakinmohammedrafeeq/ledgera/main/frontend/public/gold-logo.png" alt="Ledgera Logo" width="200">
-</p>
-
 # Ledgera — Full-Stack Finance Tracking System
 
 Ledgera is a full-stack finance tracking and analytics app with role-based access control, JWT authentication, and dashboard visualizations.
