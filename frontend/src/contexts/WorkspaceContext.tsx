@@ -46,31 +46,61 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await workspaceApi.getWorkspaces();
-      setWorkspaces(data);
-      
-      // Use the workspace marked as current by the backend
-      const currentFromBackend = data.find(w => w.isCurrent);
-      if (currentFromBackend) {
-        setCurrentWorkspace(currentFromBackend);
-      } else if (data.length > 0) {
-        // Fallback: if no workspace is marked as current, switch to the first one
-        const firstWorkspace = data[0];
-        setCurrentWorkspace(firstWorkspace);
-        // Call backend to set it as current
-        try {
-          await workspaceApi.switchWorkspace(firstWorkspace.id);
-        } catch (err) {
-          console.error('Failed to set initial workspace:', err);
+    const maxRetries = 12; // 12 retries over ~3 minutes
+    const baseDelay = 5000; // Start with 5 seconds
+    let attempt = 0;
+
+    const attemptLoad = async (): Promise<void> => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await workspaceApi.getWorkspaces();
+        setWorkspaces(data);
+        
+        // Use the workspace marked as current by the backend
+        const currentFromBackend = data.find(w => w.isCurrent);
+        if (currentFromBackend) {
+          setCurrentWorkspace(currentFromBackend);
+        } else if (data.length > 0) {
+          // Fallback: if no workspace is marked as current, switch to the first one
+          const firstWorkspace = data[0];
+          setCurrentWorkspace(firstWorkspace);
+          // Call backend to set it as current
+          try {
+            await workspaceApi.switchWorkspace(firstWorkspace.id);
+          } catch (err) {
+            console.error('Failed to set initial workspace:', err);
+          }
+        }
+      } catch (err: any) {
+        attempt++;
+        console.error(`Failed to load workspaces (attempt ${attempt}/${maxRetries}):`, err);
+        
+        // If we haven't exceeded max retries, try again
+        if (attempt < maxRetries) {
+          const delay = Math.min(baseDelay * Math.pow(1.5, attempt - 1), 30000); // Max 30 seconds between retries
+          console.log(`Retrying in ${delay / 1000} seconds... (Backend may be cold-starting)`);
+          
+          // Keep loading state active and wait before retry
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return attemptLoad();
+        } else {
+          // All retries exhausted
+          const errorMessage = err.message || err.response?.data?.message || 'Failed to load workspaces after multiple attempts';
+          setError(errorMessage);
+          throw err;
+        }
+      } finally {
+        // Only set loading to false if we're done (success or all retries exhausted)
+        if (attempt >= maxRetries || workspaces.length > 0) {
+          setLoading(false);
         }
       }
-    } catch (err: any) {
-      console.error('Failed to load workspaces:', err);
-      setError(err.response?.data?.message || 'Failed to load workspaces');
-    } finally {
+    };
+
+    try {
+      await attemptLoad();
+    } catch (err) {
       setLoading(false);
     }
   };

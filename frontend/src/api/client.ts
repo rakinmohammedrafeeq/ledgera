@@ -14,7 +14,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 second timeout
+  timeout: 180000, // 180 seconds (3 minutes) for Render cold starts
 })
 
 // Request interceptor: Add auth token to requests
@@ -51,7 +51,11 @@ apiClient.interceptors.response.use(
       // Backend provided an error message
       return Promise.reject(error)
     } else if (error.request) {
-      // Request was made but no response received
+      // Request was made but no response received (timeout or network error)
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        const timeoutError = new Error('Server is taking longer than expected. The backend may be starting up. Please wait a moment and try again.')
+        return Promise.reject(timeoutError)
+      }
       const networkError = new Error('Unable to connect to server. Please check your connection.')
       return Promise.reject(networkError)
     } else {

@@ -75,7 +75,7 @@ export function LoginPage() {
                 Signing you in…
               </p>
               <p className="text-xs leading-relaxed text-white/50">
-                If the backend is cold-starting, this may take a moment.
+                First visit or after inactivity? The backend may take up to ~3 minutes to wake up.
               </p>
             </div>
           </div>
