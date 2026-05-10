@@ -150,10 +150,68 @@ export const WorkspaceMembersPage: React.FC = () => {
 
   const canManageMembers = currentWorkspace?.userPermission === 'OWNER';
 
+  // Handle no workspace selected
+  if (!currentWorkspace) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+          <Users className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground mb-2">No Workspace Selected</h3>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          Please select a workspace from the sidebar to view and manage members.
+        </p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-muted-foreground">Loading members...</div>
+      </div>
+    );
+  }
+
+  // Handle empty members list
+  if (members.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Members</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage workspace members and permissions
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center h-[50vh] bg-card border border-border rounded-2xl">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+            <Users className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">No Members Found</h3>
+          <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+            This workspace doesn't have any members yet.
+          </p>
+          {canManageMembers && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground rounded-xl font-medium transition-all shadow-lg shadow-primary/20"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add Members
+            </button>
+          )}
+        </div>
+        {currentWorkspace && (
+          <AddMembersModal
+            isOpen={showAddModal}
+            onClose={() => setShowAddModal(false)}
+            workspaceId={currentWorkspace.id}
+            existingMemberEmails={members.map(m => m.userEmail)}
+            onSuccess={handleMemberAdded}
+          />
+        )}
       </div>
     );
   }
