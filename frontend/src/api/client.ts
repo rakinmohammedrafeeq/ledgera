@@ -1,26 +1,41 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { clearAuthState, getStoredToken } from '@/store/authStore'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+// Get API base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+
+// Validate that API URL is configured
+if (!API_BASE_URL) {
+  console.error('VITE_API_BASE_URL is not configured in environment variables')
+}
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 })
 
-apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = getStoredToken()
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+// Request interceptor: Add auth token to requests
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = getStoredToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
   }
-  return config
-})
+)
 
+// Response interceptor: Handle auth errors and provide clean error messages
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    // Handle 401 Unauthorized - clear auth and redirect to login
     if (
       error.response?.status === 401 &&
       Boolean((error.config as InternalAxiosRequestConfig)?.headers?.Authorization)
@@ -30,6 +45,20 @@ apiClient.interceptors.response.use(
         window.location.href = '/login'
       }
     }
-    return Promise.reject(error)
-  },
+
+    // Provide clean error messages (never expose internal details)
+    if (error.response?.data) {
+      // Backend provided an error message
+      return Promise.reject(error)
+    } else if (error.request) {
+      // Request was made but no response received
+      const networkError = new Error('Unable to connect to server. Please check your connection.')
+      return Promise.reject(networkError)
+    } else {
+      // Something else happened
+      const genericError = new Error('An unexpected error occurred. Please try again.')
+      return Promise.reject(genericError)
+    }
+  }
 )
+
