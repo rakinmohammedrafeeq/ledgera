@@ -1,5 +1,6 @@
 import { APP_LOGO_SRC } from '@/config/brandAssets'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   ArrowRight,
   BarChart3,
@@ -11,6 +12,12 @@ import { AppFooter } from '@/components/layout/AppFooter'
 import { InteractiveShowcase } from '@/components/landing/InteractiveShowcase'
 
 export function LandingPage() {
+  const { isAuthenticated, isReady } = useAuth()
+
+  // Redirect authenticated users to dashboard
+  if (isReady && isAuthenticated) {
+    return <Navigate to="/app/dashboard" replace />
+  }
 
   const features = [
     {

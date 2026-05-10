@@ -56,7 +56,14 @@ export const ForgotPasswordOtpPage: React.FC = () => {
         message: err.message,
         fullError: err
       });
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to send OTP';
+      
+      let errorMessage = err.response?.data?.message || err.message || 'Failed to send OTP';
+      
+      // Add helpful context for rate limiting
+      if (errorMessage.includes('Too many OTP requests')) {
+        errorMessage = 'Too many OTP requests. Please wait 15 minutes and try again, or use a different email address.';
+      }
+      
       setError(errorMessage);
     } finally {
       setLoading(false);
