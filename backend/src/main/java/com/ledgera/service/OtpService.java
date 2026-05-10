@@ -25,7 +25,7 @@ public class OtpService {
     private static final int OTP_LENGTH = 6;
     private static final int OTP_EXPIRY_MINUTES = 10;
     private static final int MAX_OTP_ATTEMPTS = 5;
-    private static final int RESEND_COOLDOWN_SECONDS = 60;
+    private static final int RESEND_COOLDOWN_SECONDS = 30; // Reduced from 60 to 30 seconds
     
     private final UserRepository userRepository;
     private final EmailService emailService;
@@ -85,7 +85,22 @@ public class OtpService {
             if (LocalDateTime.now().isBefore(cooldownEnd)) {
                 long secondsRemaining = java.time.Duration.between(LocalDateTime.now(), cooldownEnd).getSeconds();
                 log.warn("Step 3 FAILED: Cooldown active - {} seconds remaining", secondsRemaining);
-                throw new BadRequestException("Please wait " + secondsRemaining + " seconds before requesting a new OTP.");
+                
+                // Format time remaining in a user-friendly way
+                String timeMessage;
+                if (secondsRemaining < 60) {
+                    timeMessage = secondsRemaining + " seconds";
+                } else if (secondsRemaining < 3600) {
+                    long minutes = secondsRemaining / 60;
+                    timeMessage = minutes + " minute" + (minutes > 1 ? "s" : "");
+                } else {
+                    long hours = secondsRemaining / 3600;
+                    long minutes = (secondsRemaining % 3600) / 60;
+                    timeMessage = hours + " hour" + (hours > 1 ? "s" : "") + 
+                                 (minutes > 0 ? " and " + minutes + " minute" + (minutes > 1 ? "s" : "") : "");
+                }
+                
+                throw new BadRequestException("Please wait " + timeMessage + " before requesting a new OTP.");
             }
         }
         log.info("Step 3 PASSED: No active cooldown");
