@@ -501,7 +501,7 @@ npm run preview
    - Build Command: `npm run build`
    - Output Directory: `dist`
 3. **Set environment variables:**
-   - `VITE_API_URL` (your backend URL)
+   - `VITE_API_BASE_URL` (your backend URL, e.g., `https://your-backend.onrender.com/api`)
 4. **Deploy**
 
 ### Email Configuration (Resend)

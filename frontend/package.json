@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "tsc -p tsconfig.json --noEmit"
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "verify-api": "node verify-api-config.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
