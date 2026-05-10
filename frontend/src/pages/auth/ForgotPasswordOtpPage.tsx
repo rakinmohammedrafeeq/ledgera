@@ -43,11 +43,21 @@ export const ForgotPasswordOtpPage: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      console.log('Requesting OTP for email:', email.trim());
       await otpApi.requestOtp({ email: email.trim() });
+      console.log('OTP request successful');
       setStep('otp');
       setResendCooldown(60);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to send OTP');
+      console.error('OTP Request Error Details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message,
+        fullError: err
+      });
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to send OTP';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
