@@ -225,15 +225,13 @@ export const AdminUsersPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border ${
-                          user.role === 'ADMIN'
-                            ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
-                            : user.role === 'ANALYST'
-                            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
-                            : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20'
-                        }`}>
-                          {user.role}
-                        </span>
+                        {user.role === 'ADMIN' ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium border bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
+                            ADMIN
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div>
