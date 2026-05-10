@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { AuthResponse, User } from '@/types'
+import { usersApi } from '@/api/usersApi'
 import {
   clearAuthState,
   getStoredAuthState,
@@ -13,6 +14,7 @@ interface AuthContextType {
   token: string | null
   login: (authResponse: AuthResponse) => void
   logout: () => void
+  refreshUser: () => Promise<void>
   isAuthenticated: boolean
   isAdmin: boolean
   // Member access (non-admin). Kept as isUser to avoid breaking existing consumers.
@@ -52,6 +54,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const refreshUser = async () => {
+    if (!token) return
+    try {
+      const userData = await usersApi.getCurrentUser()
+      const updatedUser: User = {
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role as 'ADMIN' | 'ANALYST' | 'VIEWER',
+      }
+      persistAuthState(token, updatedUser)
+      setUser(updatedUser)
+    } catch (error) {
+      console.error('Failed to refresh user:', error)
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -59,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         login,
         logout,
+        refreshUser,
         isAuthenticated: !!token,
         isAdmin: user?.role === 'ADMIN',
         isUser: user?.role === 'VIEWER' || user?.role === 'ANALYST',

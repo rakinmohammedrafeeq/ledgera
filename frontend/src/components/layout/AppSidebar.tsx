@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Receipt, Users, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Receipt, Users, LogOut, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
 import { APP_LOGO_SRC } from '@/config/brandAssets'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -11,13 +11,18 @@ import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { getInitials } from '@/lib/utils'
 import { LogoutConfirm } from '@/components/auth/LogoutConfirm'
+import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
+import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal'
+import { useState } from 'react'
 
 const mainNav = [
   { title: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
   { title: 'Records', href: '/app/records', icon: Receipt },
 ] as const
 
-const teamNav = [{ title: 'Team', href: '/app/team', icon: Users }] as const
+const teamNav = [{ title: 'Members', href: '/app/members', icon: Users }] as const
+
+const adminNav = [{ title: 'User Management', href: '/app/admin/users', icon: Shield }] as const
 
 interface AppSidebarProps {
   onClose?: () => void
@@ -28,6 +33,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   const { user } = useAuth()
   const { isCollapsed, toggleSidebar } = useSidebar()
   const showTeam = user?.role === 'ANALYST' || user?.role === 'ADMIN'
+  const showAdmin = user?.role === 'ADMIN'
+  const [showCreateWorkspace, setShowCreateWorkspace] = useState(false)
 
   const handleNavClick = () => {
     onClose?.()
@@ -42,25 +49,28 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
         <ScrollArea className="h-full" viewportClassName="scrollbar-none" scrollbarClassName="hidden">
           <div className="flex min-h-full flex-col">
             {/* ── Logo & Toggle ────────────────────────────────── */}
-            <div className="flex h-16 items-center px-4 gap-3">
+            <div className="flex h-16 items-center px-4 gap-3 relative">
               <div className="flex items-center gap-2.5 min-w-0 overflow-hidden flex-1">
                 <img src={APP_LOGO_SRC} alt="Ledgera" className="h-8 w-8 flex-shrink-0" loading="eager" />
-                {!isCollapsed && (
-                  <span className="text-lg font-semibold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-                    Ledgera
-                  </span>
-                )}
+                <span className={`text-lg font-semibold tracking-tight whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100 overflow-hidden text-ellipsis'}`}>
+                  Ledgera
+                </span>
               </div>
-              {!isCollapsed && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleSidebar}
-                  className="h-7 w-7 flex-shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                className={`h-7 w-7 flex-shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden pointer-events-none' : 'opacity-100'}`}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Separator className="bg-sidebar-border" />
+
+            {/* ── Workspace Switcher ───────────────────────────── */}
+            <div className="py-3">
+              <WorkspaceSwitcher onCreateClick={() => setShowCreateWorkspace(true)} />
             </div>
 
             <Separator className="bg-sidebar-border" />
@@ -128,6 +138,59 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
                     )}
                     <nav className="space-y-0.5">
                       {teamNav.map((item) => {
+                        const active = isActive(item.href)
+                        const navItem = (
+                          <Link
+                            key={item.href}
+                            to={item.href}
+                            onClick={handleNavClick}
+                            className={cn(
+                              'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                              active
+                                ? 'bg-sidebar-accent text-sidebar-foreground'
+                                : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+                              isCollapsed && 'justify-center',
+                            )}
+                          >
+                            <item.icon
+                              className={cn(
+                                'h-[18px] w-[18px] flex-shrink-0 transition-colors duration-150',
+                                active ? 'text-primary' : 'text-sidebar-foreground/50 group-hover:text-primary/70',
+                              )}
+                            />
+                            {!isCollapsed && (
+                              <>
+                                <span className="whitespace-nowrap">{item.title}</span>
+                                {active && (
+                                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                                )}
+                              </>
+                            )}
+                          </Link>
+                        )
+
+                        return isCollapsed ? (
+                          <Tooltip key={item.href}>
+                            <TooltipTrigger asChild>{navItem}</TooltipTrigger>
+                            <TooltipContent side="right">{item.title}</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          navItem
+                        )
+                      })}
+                    </nav>
+                  </div>
+                ) : null}
+
+                {showAdmin ? (
+                  <div className="space-y-1">
+                    {!isCollapsed && (
+                      <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wider text-sidebar-foreground/40">
+                        Platform Admin
+                      </p>
+                    )}
+                    <nav className="space-y-0.5">
+                      {adminNav.map((item) => {
                         const active = isActive(item.href)
                         const navItem = (
                           <Link
@@ -283,6 +346,12 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
           </Button>
         )}
       </div>
+
+      {/* ── Create Workspace Modal ──────────────────────────── */}
+      <CreateWorkspaceModal
+        isOpen={showCreateWorkspace}
+        onClose={() => setShowCreateWorkspace(false)}
+      />
     </TooltipProvider>
   )
 }

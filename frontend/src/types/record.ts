@@ -20,7 +20,6 @@ export interface FinancialRecordRequest {
   category: string
   date: string
   description?: string
-  userId: number
 }
 
 export interface Page<T> {

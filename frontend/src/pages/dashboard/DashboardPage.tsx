@@ -33,6 +33,7 @@ import {
 import { StatsCard } from '@/components/dashboard/StatsCard'
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { useDashboardQuery } from '@/hooks'
 import { GRID_STYLE, CHART_PALETTE } from '@/lib/chart-theme'
 
@@ -57,8 +58,11 @@ function ChartTooltip({ active, payload, label }: any) {
 
 export function DashboardPage() {
   const { user } = useAuth()
-  const canCreate = user?.role === 'ANALYST'
-  const { data, isLoading } = useDashboardQuery()
+  const { currentWorkspace } = useWorkspace()
+  
+  // Check workspace permission instead of platform role
+  const canCreate = currentWorkspace?.userPermission === 'OWNER' || currentWorkspace?.userPermission === 'EDITOR'
+  const { data, isLoading, error } = useDashboardQuery()
 
   const monthly = useMemo(
     () =>
@@ -83,7 +87,7 @@ export function DashboardPage() {
 
   const recent = data?.recentTransactions ?? []
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
@@ -92,6 +96,37 @@ export function DashboardPage() {
           ))}
         </div>
         <Skeleton className="h-80 rounded-xl" />
+      </div>
+    )
+  }
+
+  // Handle 403 or other errors
+  if (error || !data) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, {user?.name}</p>
+          </div>
+        </div>
+        <Card className="border-border/60 bg-card/60 backdrop-blur-sm">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Wallet className="h-16 w-16 text-muted-foreground/40 mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No records yet</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              {canCreate ? 'Add your first record to start tracking.' : 'Waiting for records to be added.'}
+            </p>
+            {canCreate && (
+              <Button asChild className="gap-2 mt-6">
+                <Link to="/app/records">
+                  <Plus className="h-4 w-4" />
+                  Add record
+                </Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -108,12 +143,12 @@ export function DashboardPage() {
             <Button asChild className="gap-2">
               <Link to="/app/records">
                 <Plus className="h-4 w-4" />
-                New record
+                Add record
               </Link>
             </Button>
           ) : null}
           <Button variant="outline" asChild>
-            <Link to="/app/records">View records</Link>
+            <Link to="/app/records">All records</Link>
           </Button>
         </div>
       </div>
@@ -128,12 +163,12 @@ export function DashboardPage() {
         <Card className="border-border/60 bg-card/60 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-base">Cash flow</CardTitle>
-            <CardDescription>Income vs expenses by month</CardDescription>
+            <CardDescription>Monthly income vs expenses</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] pt-0">
             {monthly.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                No trend data yet
+                No data yet
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -182,13 +217,13 @@ export function DashboardPage() {
 
         <Card className="border-border/60 bg-card/60 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-base">Categories</CardTitle>
-            <CardDescription>Top categories by volume</CardDescription>
+            <CardTitle className="text-base">Top categories</CardTitle>
+            <CardDescription>Spending by category</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] pt-0">
             {categories.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                No categories yet
+                No data yet
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -227,13 +262,13 @@ export function DashboardPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base">Recent activity</CardTitle>
-            <CardDescription>Latest ledger entries</CardDescription>
+            <CardDescription>Latest transactions</CardDescription>
           </div>
           <Wallet className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           {recent.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">No transactions yet</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No activity yet</p>
           ) : (
             <Table>
               <TableHeader>

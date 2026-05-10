@@ -39,12 +39,14 @@ export function AuthLayout() {
   const location = useLocation()
 
   const showFooter = location.pathname === '/login' || location.pathname === '/register'
+  const isForgotPasswordPage = location.pathname === '/forgot-password'
 
   if (!isReady) {
     return null
   }
 
-  if (isAuthenticated) {
+  // Allow authenticated users to access forgot password page
+  if (isAuthenticated && !isForgotPasswordPage) {
     return <Navigate to={getDefaultRouteByRole()} replace />
   }
 

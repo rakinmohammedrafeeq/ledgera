@@ -1,6 +1,7 @@
 export const queryKeys = {
-  dashboard: ['dashboard'] as const,
-  records: (params?: Record<string, unknown>) => ['records', params ?? {}] as const,
+  dashboard: (workspaceId: number | null) => ['dashboard', workspaceId] as const,
+  records: (workspaceId: number | null, params?: unknown) =>
+    ['records', workspaceId, params ?? {}] as const,
   users: ['users'] as const,
   assignableUsers: ['users', 'assignable'] as const,
 }

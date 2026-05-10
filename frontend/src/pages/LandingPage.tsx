@@ -15,23 +15,23 @@ export function LandingPage() {
   const features = [
     {
       icon: CreditCard,
-      title: 'Ledger records',
-      desc: 'Income and expenses tracked in one clean ledger.',
+      title: 'Track everything',
+      desc: 'Income and expenses in one place.',
     },
     {
       icon: TrendingUp,
-      title: 'Insights & analytics',
-      desc: 'Cash flow, categories, and trends at a glance.',
+      title: 'Real-time insights',
+      desc: 'Cash flow, categories, and trends.',
     },
     {
       icon: BarChart3,
-      title: 'Role-based access',
-      desc: 'Analysts, viewers, and admins — each with the right permissions.',
+      title: 'Team workspaces',
+      desc: 'Collaborate with granular permissions.',
     },
     {
       icon: Lock,
-      title: 'Private by default',
-      desc: 'JWT-secured API. Your data stays in your stack.',
+      title: 'Secure by default',
+      desc: 'JWT authentication. Your data, your control.',
     },
   ]
 
@@ -82,15 +82,15 @@ export function LandingPage() {
           <main className="mt-14 grid gap-12 lg:mt-18 lg:grid-cols-12 lg:items-center" style={{ animation: 'slide-up 600ms ease-out both' }}>
             <div className="space-y-7 lg:col-span-7">
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-[3.25rem] lg:leading-[1.15]">
-                Your finance workspace,
+                Finance tracking,
                 <span className="block bg-gradient-to-r from-primary/80 via-primary to-primary/80 bg-clip-text text-transparent">
-                  organised and clear.
+                  built for teams.
                 </span>
               </h1>
 
               <p className="max-w-lg text-base leading-relaxed text-white/45">
-                Ledgera gives you dashboards, ledger records, and team oversight — all connected to your API. 
-                Simple, fast, and built for clarity.
+                Track records, visualize cash flow, and collaborate in shared workspaces. 
+                Everything you need, nothing you don't.
               </p>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -119,8 +119,8 @@ export function LandingPage() {
           {/* ── Features ─────────────────────────────────────── */}
           <section className="mt-16 lg:mt-24">
             <div className="mb-6">
-              <h2 className="text-xl font-semibold">Built for clarity</h2>
-              <p className="mt-1 text-sm text-white/40">Everything you need — nothing you don't.</p>
+              <h2 className="text-xl font-semibold">Everything in one place</h2>
+              <p className="mt-1 text-sm text-white/40">Track, analyze, collaborate.</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -144,8 +144,8 @@ export function LandingPage() {
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 sm:p-10">
               <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
                 <div>
-                  <h3 className="text-lg font-semibold">Ready to get started?</h3>
-                  <p className="mt-1 text-sm text-white/40">Create an account in seconds and start tracking.</p>
+                  <h3 className="text-lg font-semibold">Start tracking today</h3>
+                  <p className="mt-1 text-sm text-white/40">Create your workspace in seconds.</p>
                 </div>
                 <Link
                   to="/register"

@@ -9,24 +9,14 @@ import { APP_LOGO_SRC } from '@/config/brandAssets'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { LedgeraSpinner } from '@/components/ui/fintrix-spinner'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRegisterMutation } from '@/hooks'
-import { getDefaultRouteByRole } from '@/lib/routeUtils'
-import { getRoleLabel } from '@/lib/roleUtils'
 
 const registerSchema = z
   .object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Please enter a valid email address'),
-    role: z.enum(['ANALYST', 'VIEWER']),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
   })
@@ -45,14 +35,10 @@ export function RegisterPage() {
   const {
     register: registerField,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { role: 'ANALYST' },
   })
-  const role = watch('role')
 
   const mutation = useRegisterMutation()
 
@@ -62,13 +48,12 @@ export function RegisterPage() {
         name: data.name,
         email: data.email,
         password: data.password,
-        role: data.role,
       },
       {
         onSuccess: (authResponse) => {
           login(authResponse)
-          toast.success(`${getRoleLabel(authResponse.role)} account created successfully!`)
-          navigate(getDefaultRouteByRole(), { replace: true })
+          toast.success('Account created successfully!')
+          navigate('/app/dashboard', { replace: true })
         },
         onError: () => {
           toast.error('Failed to create account. Please try again.')
@@ -110,7 +95,7 @@ export function RegisterPage() {
         <div className="space-y-1.5">
           <h1 className="text-2xl font-bold tracking-tight text-white">Create your account</h1>
           <p className="text-sm text-white/40">
-            Choose a role to get started with Ledgera.
+            Get started with your personal workspace.
           </p>
         </div>
       </div>
@@ -146,19 +131,6 @@ export function RegisterPage() {
             {errors.email && (
               <p className="text-xs text-red-400">{errors.email.message}</p>
             )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-white/60">Role</Label>
-            <Select value={role} onValueChange={(v) => setValue('role', v as 'ANALYST' | 'VIEWER')}>
-              <SelectTrigger className="h-11 border-white/[0.08] bg-white/[0.03] text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ANALYST">Analyst — create and edit records</SelectItem>
-                <SelectItem value="VIEWER">Viewer — read-only access</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-1.5">

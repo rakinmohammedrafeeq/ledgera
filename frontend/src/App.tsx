@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { SidebarProvider } from '@/contexts/SidebarContext'
+import { WorkspaceProvider } from '@/contexts/WorkspaceContext'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
@@ -9,11 +10,12 @@ import { getDefaultRouteByRole } from '@/lib/routeUtils'
 import { LandingPage } from '@/pages/LandingPage'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
-import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
+import { ForgotPasswordOtpPage } from '@/pages/auth/ForgotPasswordOtpPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { RecordsPage } from '@/pages/records/RecordsPage'
-import { TeamPage } from '@/pages/team/TeamPage'
+import { WorkspaceMembersPage } from '@/pages/workspace/WorkspaceMembersPage'
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
 
 function RoleRedirect() {
   const { isAuthenticated, isReady } = useAuth()
@@ -37,7 +39,7 @@ function AppRoutes() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordOtpPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
@@ -53,10 +55,18 @@ function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="records" element={<RecordsPage />} />
         <Route
-          path="team"
+          path="members"
           element={
             <ProtectedRoute allowedRoles={['ADMIN', 'ANALYST']}>
-              <TeamPage />
+              <WorkspaceMembersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/users"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminUsersPage />
             </ProtectedRoute>
           }
         />
@@ -64,7 +74,8 @@ function AppRoutes() {
 
       <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
       <Route path="/records" element={<Navigate to="/app/records" replace />} />
-      <Route path="/team" element={<Navigate to="/app/team" replace />} />
+      <Route path="/members" element={<Navigate to="/app/members" replace />} />
+      <Route path="/team" element={<Navigate to="/app/members" replace />} />
 
       <Route path="*" element={<RoleRedirect />} />
     </Routes>
@@ -75,9 +86,11 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <SidebarProvider>
-          <AppRoutes />
-        </SidebarProvider>
+        <WorkspaceProvider>
+          <SidebarProvider>
+            <AppRoutes />
+          </SidebarProvider>
+        </WorkspaceProvider>
       </AuthProvider>
     </ThemeProvider>
   )

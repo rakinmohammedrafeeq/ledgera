@@ -33,6 +33,8 @@ export const AppFooter = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
+
   const goHomeOrTop = React.useCallback(() => {
     if (location.pathname === '/') {
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -40,6 +42,12 @@ export const AppFooter = () => {
     }
     navigate('/')
   }, [location.pathname, navigate])
+
+  const handleLogoClick = () => {
+    if (isAuthPage) {
+      goHomeOrTop()
+    }
+  }
 
   return (
     <footer className="relative z-10 w-full border-t border-white/[0.06] bg-[#0c0c14] text-white">
@@ -49,26 +57,40 @@ export const AppFooter = () => {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
           {/* Column 1: Brand */}
           <div className="space-y-4">
-            <button
-              type="button"
-              onClick={goHomeOrTop}
-              className="group inline-flex items-center gap-2.5 rounded-lg px-1 py-0.5 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              aria-label="Go to home"
-            >
-              <img
-                src={APP_LOGO_SRC}
-                alt={`${APP_NAME} logo`}
-                width={28}
-                height={28}
-                loading="lazy"
-                className="h-7 w-7 object-contain"
-              />
-              <span className="text-sm font-semibold tracking-tight">{APP_NAME}</span>
-            </button>
+            {isAuthPage ? (
+              <button
+                type="button"
+                onClick={handleLogoClick}
+                className="group inline-flex items-center gap-2.5 rounded-lg px-1 py-0.5 transition-opacity duration-200 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                aria-label="Go to home"
+              >
+                <img
+                  src={APP_LOGO_SRC}
+                  alt={`${APP_NAME} logo`}
+                  width={28}
+                  height={28}
+                  loading="lazy"
+                  className="h-7 w-7 object-contain"
+                />
+                <span className="text-sm font-semibold tracking-tight">{APP_NAME}</span>
+              </button>
+            ) : (
+              <div className="inline-flex items-center gap-2.5 px-1 py-0.5">
+                <img
+                  src={APP_LOGO_SRC}
+                  alt={`${APP_NAME} logo`}
+                  width={28}
+                  height={28}
+                  loading="lazy"
+                  className="h-7 w-7 object-contain"
+                />
+                <span className="text-sm font-semibold tracking-tight">{APP_NAME}</span>
+              </div>
+            )}
 
             <p className="text-[13px] leading-relaxed text-white/40">
-              A modern workspace for tracking finances,<br />
-              managing records, and team oversight.
+              Finance tracking for teams.<br />
+              Clean, collaborative, secure.
             </p>
 
             <p className="text-xs text-white/25">

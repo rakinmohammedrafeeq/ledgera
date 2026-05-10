@@ -1,4 +1,4 @@
-import { Menu, Search, Moon, Sun } from 'lucide-react'
+import { Menu, Search, Moon, Sun, Monitor, Check, User as UserIcon, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -16,6 +16,9 @@ import { getInitials } from '@/lib/utils'
 import { getRoleLabel } from '@/lib/roleUtils'
 import { cn } from '@/lib/utils'
 import { LogoutConfirm } from '@/components/auth/LogoutConfirm'
+import { ChangeNameDialog } from '@/components/user/ChangeNameDialog'
+import { ChangePasswordDialog } from '@/components/user/ChangePasswordDialog'
+import { useState } from 'react'
 
 interface NavbarProps {
   onMenuClick: () => void
@@ -23,7 +26,9 @@ interface NavbarProps {
 
 export function Navbar({ onMenuClick }: NavbarProps) {
   const { user } = useAuth()
-  const { toggleTheme, isDark } = useTheme()
+  const { theme, setTheme, isDark } = useTheme()
+  const [showChangeNameDialog, setShowChangeNameDialog] = useState(false)
+  const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false)
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border/50 bg-background/80 px-4 backdrop-blur-lg md:px-6">
@@ -62,31 +67,51 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         </Button>
 
         {/* Theme Toggle */}
-        <Button
-          id="theme-toggle"
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          className="relative h-9 w-9 overflow-hidden transition-colors duration-150 hover:bg-muted"
-        >
-          <Sun
-            className={cn(
-              'absolute h-4 w-4 transition-all duration-300',
-              isDark
-                ? 'rotate-0 scale-100 opacity-100'
-                : 'rotate-90 scale-0 opacity-0',
-            )}
-          />
-          <Moon
-            className={cn(
-              'absolute h-4 w-4 transition-all duration-300',
-              isDark
-                ? '-rotate-90 scale-0 opacity-0'
-                : 'rotate-0 scale-100 opacity-100',
-            )}
-          />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              id="theme-toggle"
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle theme"
+              className="relative h-9 w-9 overflow-hidden transition-colors duration-150 hover:bg-muted"
+            >
+              <Sun
+                className={cn(
+                  'absolute h-4 w-4 transition-all duration-300',
+                  isDark
+                    ? 'rotate-90 scale-0 opacity-0'
+                    : 'rotate-0 scale-100 opacity-100',
+                )}
+              />
+              <Moon
+                className={cn(
+                  'absolute h-4 w-4 transition-all duration-300',
+                  isDark
+                    ? 'rotate-0 scale-100 opacity-100'
+                    : '-rotate-90 scale-0 opacity-0',
+                )}
+              />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer">
+              <Sun className="mr-2 h-4 w-4" />
+              <span>Light</span>
+              {theme === 'light' && <Check className="ml-auto h-4 w-4" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer">
+              <Moon className="mr-2 h-4 w-4" />
+              <span>Dark</span>
+              {theme === 'dark' && <Check className="ml-auto h-4 w-4" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer">
+              <Monitor className="mr-2 h-4 w-4" />
+              <span>System</span>
+              {theme === 'system' && <Check className="ml-auto h-4 w-4" />}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User Menu */}
         <DropdownMenu>
@@ -112,6 +137,15 @@ export function Navbar({ onMenuClick }: NavbarProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowChangeNameDialog(true)} className="cursor-pointer">
+              <UserIcon className="mr-2 h-4 w-4" />
+              Change Name
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowChangePasswordDialog(true)} className="cursor-pointer">
+              <Lock className="mr-2 h-4 w-4" />
+              Change Password
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <LogoutConfirm
               trigger={
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive cursor-pointer">
@@ -125,6 +159,18 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Change Name Dialog */}
+      <ChangeNameDialog
+        isOpen={showChangeNameDialog}
+        onClose={() => setShowChangeNameDialog(false)}
+      />
+
+      {/* Change Password Dialog */}
+      <ChangePasswordDialog
+        isOpen={showChangePasswordDialog}
+        onClose={() => setShowChangePasswordDialog(false)}
+      />
     </header>
   )
 }

@@ -5,8 +5,8 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useWorkspace } from '@/contexts/WorkspaceContext'
 import {
-  useAssignableQuery,
   useCreateRecordMutation,
   useDeleteRecordMutation,
   useRecordsQuery,
@@ -61,21 +61,67 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
+const INCOME_CATEGORIES = [
+  'Salary',
+  'Freelance',
+  'Business',
+  'Investment',
+  'Bonus',
+  'Interest',
+  'Rental Income',
+  'Refund',
+  'Other',
+] as const
+
+const EXPENSE_CATEGORIES = [
+  'Food',
+  'Groceries',
+  'Shopping',
+  'Transportation',
+  'Fuel',
+  'Bills',
+  'Rent',
+  'EMI',
+  'Entertainment',
+  'Healthcare',
+  'Education',
+  'Travel',
+  'Subscription',
+  'Insurance',
+  'Gifts',
+  'Taxes',
+  'Investment',
+  'Savings',
+  'Other',
+] as const
+
 const recordSchema = z.object({
   amount: z.coerce.number().positive('Amount must be positive'),
   type: z.enum(['INCOME', 'EXPENSE']),
-  category: z.string().min(1, 'Category required'),
-  date: z.string().min(1, 'Date required'),
+  category: z.string().min(1, 'Category is required'),
+  customCategory: z.string().optional(),
+  date: z.string().min(1, 'Date is required'),
   description: z.string().optional(),
-  userId: z.coerce.number().positive('Select owner'),
+}).refine((data) => {
+  // If category is "Other", customCategory must be provided
+  if (data.category === 'Other') {
+    return data.customCategory && data.customCategory.trim().length > 0
+  }
+  return true
+}, {
+  message: 'Custom category is required when "Other" is selected',
+  path: ['customCategory'],
 })
 
 type RecordForm = z.infer<typeof recordSchema>
 
 export function RecordsPage() {
   const { user } = useAuth()
-  const canCreate = user?.role === 'ANALYST'
-  const canMutate = user?.role === 'ANALYST' || user?.role === 'ADMIN'
+  const { currentWorkspace } = useWorkspace()
+  
+  // Check workspace permission instead of platform role
+  const canCreate = currentWorkspace?.userPermission === 'OWNER' || currentWorkspace?.userPermission === 'EDITOR'
+  const canMutate = currentWorkspace?.userPermission === 'OWNER' || currentWorkspace?.userPermission === 'EDITOR'
 
   const [page, setPage] = useState(0)
   const [sort, setSort] = useState('date:desc')
@@ -105,8 +151,7 @@ export function RecordsPage() {
     [page, sortBy, direction, startDate, endDate, category, typeFilter],
   )
 
-  const { data, isLoading } = useRecordsQuery(queryParams)
-  const { data: assignable = [] } = useAssignableQuery(canMutate && dialogOpen)
+  const { data, isLoading, error } = useRecordsQuery(queryParams)
 
   const createMut = useCreateRecordMutation()
   const updateMut = useUpdateRecordMutation()
@@ -117,55 +162,56 @@ export function RecordsPage() {
     defaultValues: {
       type: 'EXPENSE',
       category: '',
+      customCategory: '',
       date: new Date().toISOString().slice(0, 10),
       description: '',
       amount: 0,
-      userId: 0,
     },
   })
 
-  useEffect(() => {
-    if (!dialogOpen || editing) return
-    const first = assignable[0]?.id
-    if (first) {
-      form.setValue('userId', first)
-    }
-  }, [dialogOpen, editing, assignable, form])
+  const selectedType = form.watch('type')
+  const selectedCategory = form.watch('category')
+  const isOtherCategory = selectedCategory === 'Other'
+
+  const availableCategories = selectedType === 'INCOME' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
   const openNew = () => {
     setEditing(null)
     form.reset({
       type: 'EXPENSE',
       category: '',
+      customCategory: '',
       date: new Date().toISOString().slice(0, 10),
       description: '',
       amount: 0,
-      userId: assignable[0]?.id ?? 0,
     })
     setDialogOpen(true)
   }
 
   const openEdit = (row: FinancialRecordResponse) => {
     setEditing(row)
+    const isOther = ![...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES].includes(row.category as any)
     form.reset({
       amount: Number(row.amount),
       type: row.type as 'INCOME' | 'EXPENSE',
-      category: row.category,
+      category: isOther ? 'Other' : row.category,
+      customCategory: isOther ? row.category : '',
       date: row.date,
       description: row.description ?? '',
-      userId: row.userId,
     })
     setDialogOpen(true)
   }
 
   const onSubmit = (values: RecordForm) => {
+    // Use custom category if "Other" is selected
+    const finalCategory = values.category === 'Other' ? values.customCategory! : values.category
+    
     const payload = {
       amount: values.amount,
       type: values.type,
-      category: values.category,
+      category: finalCategory,
       date: values.date,
       description: values.description || undefined,
-      userId: values.userId,
     }
     if (editing) {
       updateMut.mutate(
@@ -197,12 +243,12 @@ export function RecordsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Records</h1>
-          <p className="text-muted-foreground">Filter and manage ledger entries</p>
+          <p className="text-muted-foreground">Track and filter transactions</p>
         </div>
         {canCreate ? (
           <Button onClick={openNew} className="gap-2">
             <Plus className="h-4 w-4" />
-            New record
+            Add record
           </Button>
         ) : null}
       </div>
@@ -210,7 +256,7 @@ export function RecordsPage() {
       <Card className="border-border/60 bg-card/60 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-base">Filters</CardTitle>
-          <CardDescription>Narrow down by period, category, and type</CardDescription>
+          <CardDescription>Filter by date, category, or type</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           <Input
@@ -276,8 +322,18 @@ export function RecordsPage() {
             <div className="flex justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4">
+              <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                <Loader2 className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">No records found</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-md">
+                No records in this workspace yet.
+              </p>
+            </div>
           ) : rows.length === 0 ? (
-            <p className="py-16 text-center text-sm text-muted-foreground">No records match your filters</p>
+            <p className="py-16 text-center text-sm text-muted-foreground">No matches</p>
           ) : (
             <Table>
               <TableHeader>
@@ -342,8 +398,10 @@ export function RecordsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit record' : 'New record'}</DialogTitle>
-            <DialogDescription>All fields are validated against the Ledgera API.</DialogDescription>
+            <DialogTitle>{editing ? 'Edit record' : 'Add record'}</DialogTitle>
+            <DialogDescription>
+              {editing ? 'Update record details.' : 'Add a new transaction to your workspace.'}
+            </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -352,9 +410,11 @@ export function RecordsPage() {
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>
+                      Amount <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" {...field} />
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -365,8 +425,18 @@ export function RecordsPage() {
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>
+                      Type <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value)
+                        // Reset category when type changes
+                        form.setValue('category', '')
+                        form.setValue('customCategory', '')
+                      }} 
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
@@ -386,50 +456,55 @@ export function RecordsPage() {
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
+                    <FormLabel>
+                      Category <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableCategories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              {isOtherCategory && (
+                <FormField
+                  control={form.control}
+                  name="customCategory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Custom Category <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Pet Care, Gaming, Wedding" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date</FormLabel>
+                    <FormLabel>
+                      Date <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="userId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Owner</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(Number(v))}
-                      value={field.value ? String(field.value) : ''}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select user" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {assignable.map((u) => (
-                          <SelectItem key={u.id} value={String(u.id)}>
-                            {u.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -441,7 +516,7 @@ export function RecordsPage() {
                   <FormItem>
                     <FormLabel>Note (optional)</FormLabel>
                     <FormControl>
-                      <Textarea rows={3} {...field} />
+                      <Textarea rows={3} placeholder="Add any additional details..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -455,7 +530,7 @@ export function RecordsPage() {
                   {(createMut.isPending || updateMut.isPending) && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Save
+                  {editing ? 'Update' : 'Create'}
                 </Button>
               </DialogFooter>
             </form>
