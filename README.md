@@ -1,20 +1,22 @@
+<p align="center">
+  <img src="public/icon.svg" alt="Ledgera Logo" width="170">
+</p>
+
 <div align="center">
-  <img src="public/icon.svg" alt="Ledgera Logo" width="120" height="120">
-  
-  # Ledgera
-  
-  **Full-Stack Finance Tracking System**
   
   [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
   [![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/)
   [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
   [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+  
 </div>
 
----
+# Ledgera – Full-Stack Finance Tracking System
 
-Ledgera is a full-stack finance tracking and analytics application with role-based access control, JWT authentication, and interactive dashboard visualizations.
+Ledgera is a full-stack collaborative finance platform built for modern teams and personal workflows. It combines workspace-based financial management, shared records, analytics dashboards, and role-based collaboration into a streamlined premium SaaS experience. Powered by Spring Boot, React, TypeScript, PostgreSQL, and JWT authentication, Ledgera enables users to manage records, track financial activity, collaborate across workspaces, and maintain secure access control through a scalable workspace-scoped architecture.
+
+---
 
 ## Features
 
