@@ -292,15 +292,31 @@ APP_BASE_URL=http://localhost:5173
 
 ### Frontend Environment Variables
 
-Create a `frontend/.env` file:
+The frontend uses a centralized API client for all backend requests. See [frontend/API_CONFIGURATION.md](frontend/API_CONFIGURATION.md) for detailed documentation.
 
+**Development (`.env.local`):**
 ```env
-VITE_API_URL=http://localhost:8080
+# Uses Vite proxy to avoid CORS issues
+VITE_API_BASE_URL=/api
 ```
 
+**Production (`.env` and `.env.production`):**
+```env
+# Direct backend URL
+VITE_API_BASE_URL=https://ledgera-backend.onrender.com/api
+```
+
+**Key Features:**
+- ✅ Centralized Axios client with automatic authentication
+- ✅ Consistent error handling across all API calls
+- ✅ Environment-based configuration (dev/prod)
+- ✅ No hardcoded URLs or direct fetch calls
+- ✅ 30-second timeout for all requests
+- ✅ Automatic 401 handling with redirect to login
+
 For production deployments:
-- Set `VITE_API_URL` to your backend URL (e.g., `https://your-backend.onrender.com`)
-- Configure environment variables in your hosting platform (Vercel/Netlify)
+- Set `VITE_API_BASE_URL` to your backend URL in your hosting platform
+- All API calls automatically use this centralized configuration
 
 ## Local Development
 
