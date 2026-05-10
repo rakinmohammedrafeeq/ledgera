@@ -36,6 +36,7 @@ export function LoginPage() {
   const location = useLocation()
   const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
+  const [showSlowMessage, setShowSlowMessage] = useState(false)
 
   const {
     register,
@@ -48,8 +49,15 @@ export function LoginPage() {
   const mutation = useLoginMutation()
 
   const onSubmit = (data: LoginFormData) => {
+    // Show extended message after 5 seconds if still loading
+    const slowTimer = setTimeout(() => {
+      setShowSlowMessage(true)
+    }, 5000)
+
     mutation.mutate(data, {
       onSuccess: (authResponse) => {
+        clearTimeout(slowTimer)
+        setShowSlowMessage(false)
         login(authResponse)
         toast.success(`Welcome back, ${getRoleLabel(authResponse.role)}!`)
 
@@ -59,6 +67,8 @@ export function LoginPage() {
         navigate(safeReturnPath ?? getDefaultRouteByRole(), { replace: true })
       },
       onError: () => {
+        clearTimeout(slowTimer)
+        setShowSlowMessage(false)
         toast.error('Invalid email or password')
       },
     })
@@ -74,9 +84,15 @@ export function LoginPage() {
               <p className="text-sm font-medium text-white">
                 Signing you in…
               </p>
-              <p className="text-xs leading-relaxed text-white/50">
-                First visit or after inactivity? The backend may take up to ~3 minutes to wake up.
-              </p>
+              {showSlowMessage ? (
+                <p className="text-xs leading-relaxed text-white/50">
+                  Taking longer than usual? The backend may be waking up (~3 min).
+                </p>
+              ) : (
+                <p className="text-xs leading-relaxed text-white/50">
+                  This will only take a moment.
+                </p>
+              )}
             </div>
           </div>
         </div>
