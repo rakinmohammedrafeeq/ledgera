@@ -70,6 +70,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // allow auth + health endpoints without credentials
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/diagnostics/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/health", "/healthz", "/api/health", "/api/healthz").permitAll()

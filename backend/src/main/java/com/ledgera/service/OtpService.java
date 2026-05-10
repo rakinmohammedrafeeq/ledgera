@@ -53,41 +53,50 @@ public class OtpService {
 
         log.info("=== OTP REQUEST START ===");
         log.info("Email: {}", email);
+        log.info("Step 1: Rate limiting check");
 
         // Rate limiting
         Bucket bucket = passwordResetBuckets.computeIfAbsent(email,
                 k -> rateLimitConfig.createPasswordResetBucket());
 
         if (!bucket.tryConsume(1)) {
-            log.warn("Rate limit exceeded for OTP request: {}", email);
+            log.warn("Step 1 FAILED: Rate limit exceeded for OTP request: {}", email);
             throw new BadRequestException("Too many OTP requests. Please try again later.");
         }
+        log.info("Step 1 PASSED: Rate limit check successful");
 
         // Find user
+        log.info("Step 2: Finding user by email");
         User user = userRepository.findByEmail(email).orElse(null);
 
         if (user == null) {
-            log.warn("No account found for email: {}", email);
+            log.warn("Step 2: No account found for email: {}", email);
             // Return success to prevent email enumeration
             return MessageResponse.builder()
                     .message("If an account exists with this email, you will receive an OTP.")
                     .build();
         }
+        log.info("Step 2 PASSED: User found - ID: {}, Name: {}", user.getId(), user.getName());
 
         // Check resend cooldown
+        log.info("Step 3: Checking resend cooldown");
         if (user.getOtpLastSent() != null) {
             LocalDateTime cooldownEnd = user.getOtpLastSent().plusSeconds(RESEND_COOLDOWN_SECONDS);
             if (LocalDateTime.now().isBefore(cooldownEnd)) {
                 long secondsRemaining = java.time.Duration.between(LocalDateTime.now(), cooldownEnd).getSeconds();
+                log.warn("Step 3 FAILED: Cooldown active - {} seconds remaining", secondsRemaining);
                 throw new BadRequestException("Please wait " + secondsRemaining + " seconds before requesting a new OTP.");
             }
         }
+        log.info("Step 3 PASSED: No active cooldown");
 
         // Generate OTP
+        log.info("Step 4: Generating OTP");
         String otp = generateOtp();
-        log.info("OTP generated for user: {}", user.getName());
+        log.info("Step 4 PASSED: OTP generated successfully");
 
         // Save OTP
+        log.info("Step 5: Saving OTP to database");
         user.setOtpCode(otp);
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES));
         user.setOtpAttempts(0);
@@ -95,25 +104,42 @@ public class OtpService {
 
         try {
             userRepository.save(user);
-            log.info("OTP saved to database");
+            log.info("Step 5 PASSED: OTP saved to database successfully");
         } catch (Exception e) {
-            log.error("Failed to save OTP: {}", e.getMessage(), e);
+            log.error("Step 5 FAILED: Database save error - {}", e.getMessage(), e);
             throw new BadRequestException("Unable to process request. Please try again.");
         }
 
         // Send OTP email
+        log.info("Step 6: Preparing to send OTP email");
+        log.info("Email recipient: {}", user.getEmail());
+        log.info("User name: {}", user.getName());
+        
         try {
-            log.info("Sending OTP email...");
+            log.info("Step 6a: Calling emailService.sendOtpEmail()");
             emailService.sendOtpEmail(user.getEmail(), user.getName(), otp);
+            log.info("Step 6 PASSED: OTP email sent successfully");
             log.info("=== OTP REQUEST SUCCESS ===");
         } catch (Exception e) {
-            log.error("Failed to send OTP email: {}", e.getMessage(), e);
+            log.error("Step 6 FAILED: Email send error");
+            log.error("Exception type: {}", e.getClass().getName());
+            log.error("Exception message: {}", e.getMessage());
+            log.error("Full stack trace:", e);
+            
             // Rollback OTP
+            log.info("Step 7: Rolling back OTP due to email failure");
             user.setOtpCode(null);
             user.setOtpExpiry(null);
             user.setOtpAttempts(0);
             user.setOtpLastSent(null);
-            userRepository.save(user);
+            
+            try {
+                userRepository.save(user);
+                log.info("Step 7 PASSED: OTP rollback successful");
+            } catch (Exception rollbackError) {
+                log.error("Step 7 FAILED: Rollback error - {}", rollbackError.getMessage(), rollbackError);
+            }
+            
             throw new BadRequestException("Failed to send OTP. Please try again later.");
         }
 

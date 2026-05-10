@@ -15,7 +15,7 @@ public class RateLimitConfig {
 
     /**
      * Rate limiter for password reset requests
-     * Allows 3 requests per 15 minutes per email
+     * Allows 10 requests per 15 minutes per email (increased for development)
      */
     @Bean
     public Map<String, Bucket> passwordResetBuckets() {
@@ -23,7 +23,7 @@ public class RateLimitConfig {
     }
 
     public Bucket createPasswordResetBucket() {
-        Bandwidth limit = Bandwidth.classic(3, Refill.intervally(3, Duration.ofMinutes(15)));
+        Bandwidth limit = Bandwidth.classic(10, Refill.intervally(10, Duration.ofMinutes(15)));
         return Bucket.builder()
                 .addLimit(limit)
                 .build();
