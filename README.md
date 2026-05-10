@@ -14,7 +14,7 @@
 
 # Ledgera – Full-Stack Finance Tracking System
 
-Ledgera is a full-stack collaborative finance platform built for modern teams and personal workflows. It combines workspace-based financial management, shared records, analytics dashboards, and role-based collaboration into a streamlined premium SaaS experience. Powered by Spring Boot, React, TypeScript, PostgreSQL, and JWT authentication, Ledgera enables users to manage records, track financial activity, collaborate across workspaces, and maintain secure access control through a scalable workspace-scoped architecture.
+Ledgera is a full-stack collaborative finance platform built for modern teams and personal workflows. It combines workspace-based financial management, shared records, analytics dashboards, and role-based collaboration into a streamlined premium SaaS experience.
 
 ---
 
