@@ -4,6 +4,8 @@ import com.ledgera.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -40,6 +42,31 @@ public class User {
 
     @Column(name = "reset_token_expiry")
     private LocalDateTime resetTokenExpiry;
+
+    @Column(name = "otp_code", length = 6)
+    private String otpCode;
+
+    @Column(name = "otp_expiry")
+    private LocalDateTime otpExpiry;
+
+    @Column(name = "otp_attempts")
+    @Builder.Default
+    private Integer otpAttempts = 0;
+
+    @Column(name = "otp_last_sent")
+    private LocalDateTime otpLastSent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_workspace_id")
+    private Workspace currentWorkspace;
+
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
+    @Builder.Default
+    private Set<Workspace> ownedWorkspaces = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
+    private Set<WorkspaceMember> workspaceMemberships = new HashSet<>();
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

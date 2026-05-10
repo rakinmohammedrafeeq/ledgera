@@ -56,6 +56,40 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    public String generateTokenWithWorkspace(String email, String role, Long workspaceId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expiration);
+
+        return Jwts.builder()
+                .subject(email)
+                .claim("role", role)
+                .claim("workspaceId", workspaceId)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(key)
+                .compact();
+    }
+
+    public Long getWorkspaceIdFromToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            
+            Object workspaceId = claims.get("workspaceId");
+            if (workspaceId instanceof Integer) {
+                return ((Integer) workspaceId).longValue();
+            } else if (workspaceId instanceof Long) {
+                return (Long) workspaceId;
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public String getEmailFromToken(String token) {
         return Jwts.parser()
                 .verifyWith(key)

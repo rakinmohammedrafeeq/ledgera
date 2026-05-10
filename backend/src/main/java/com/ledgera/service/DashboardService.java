@@ -3,11 +3,14 @@ package com.ledgera.service;
 import com.ledgera.dto.*;
 import com.ledgera.entity.FinancialRecord;
 import com.ledgera.entity.User;
+import com.ledgera.entity.Workspace;
 import com.ledgera.enums.Role;
 import com.ledgera.enums.TransactionType;
+import com.ledgera.enums.WorkspacePermission;
 import com.ledgera.exception.ForbiddenException;
 import com.ledgera.repository.FinancialRecordRepository;
 import com.ledgera.repository.UserRepository;
+import com.ledgera.repository.WorkspaceMemberRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,38 +25,49 @@ import java.util.stream.Collectors;
 public class DashboardService {
 
     private final FinancialRecordRepository recordRepository;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserService currentUserService;
 
-    public DashboardService(FinancialRecordRepository recordRepository, UserRepository userRepository, CurrentUserService currentUserService) {
+    public DashboardService(FinancialRecordRepository recordRepository, 
+                           UserRepository userRepository,
+                           WorkspaceMemberRepository workspaceMemberRepository,
+                           CurrentUserService currentUserService) {
         this.recordRepository = recordRepository;
+        this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserService = currentUserService;
     }
 
     public DashboardResponse getDashboardData() {
         User currentUser = currentUserService.requireCurrentUser();
-        // viewers only see their own aggregates
-        boolean restrictToUser = currentUser.getRole() == Role.VIEWER;
+        
+        // Get current workspace
+        Workspace workspace = currentUser.getCurrentWorkspace();
+        if (workspace == null) {
+            throw new ForbiddenException("No workspace selected");
+        }
+        
+        // Check workspace access
+        workspaceMemberRepository
+                .findPermissionByWorkspaceAndUser(workspace.getId(), currentUser.getId())
+                .orElseThrow(() -> new ForbiddenException("You don't have access to this workspace"));
+        
+        // All data is scoped to current workspace
+        Long workspaceId = workspace.getId();
 
-        BigDecimal totalIncome = restrictToUser
-                ? recordRepository.sumByTypeAndUser(TransactionType.INCOME, currentUser.getId())
-                : recordRepository.sumByType(TransactionType.INCOME);
-        BigDecimal totalExpenses = restrictToUser
-                ? recordRepository.sumByTypeAndUser(TransactionType.EXPENSE, currentUser.getId())
-                : recordRepository.sumByType(TransactionType.EXPENSE);
+        BigDecimal totalIncome = recordRepository.sumByTypeAndWorkspace(TransactionType.INCOME, workspaceId);
+        BigDecimal totalExpenses = recordRepository.sumByTypeAndWorkspace(TransactionType.EXPENSE, workspaceId);
+        
         if (totalIncome == null) {
-            // default null aggregates to zero for math
             totalIncome = BigDecimal.ZERO;
         }
         if (totalExpenses == null) {
-            // default null aggregates to zero for math
             totalExpenses = BigDecimal.ZERO;
         }
-        // calculate net balance for the dashboard
         BigDecimal netBalance = totalIncome.subtract(totalExpenses);
 
-        List<CategoryTotal> categoryTotals = buildCategoryTotals(restrictToUser ? currentUser.getId() : null);
-        List<MonthlyTrend> monthlyTrends = buildMonthlyTrends(restrictToUser ? currentUser.getId() : null);
-        List<FinancialRecordResponse> recentTransactions = buildRecentTransactions(restrictToUser ? currentUser.getId() : null);
+        List<CategoryTotal> categoryTotals = buildCategoryTotals(workspaceId);
+        List<MonthlyTrend> monthlyTrends = buildMonthlyTrends(workspaceId);
+        List<FinancialRecordResponse> recentTransactions = buildRecentTransactions(workspaceId);
 
         return DashboardResponse.builder()
                 .totalIncome(totalIncome)
@@ -65,14 +79,11 @@ public class DashboardService {
                 .build();
     }
 
-    private List<CategoryTotal> buildCategoryTotals(Long userId) {
-        List<Object[]> results = userId == null
-                ? recordRepository.getCategoryTotalsByType()
-                : recordRepository.getCategoryTotalsByTypeAndUser(userId);
+    private List<CategoryTotal> buildCategoryTotals(Long workspaceId) {
+        List<Object[]> results = recordRepository.getCategoryTotalsByTypeAndWorkspace(workspaceId);
         Map<String, CategoryTotal> categoryMap = new LinkedHashMap<>();
 
         for (Object[] row : results) {
-            // skip malformed rows from native aggregation
             if (row == null || row.length < 3) {
                 continue;
             }
@@ -84,7 +95,6 @@ public class DashboardService {
                     ? (BigDecimal) row[2]
                     : BigDecimal.ZERO;
             if (type == null) {
-                // ignore rows with missing transaction type
                 continue;
             }
 
@@ -107,14 +117,11 @@ public class DashboardService {
         return new ArrayList<>(categoryMap.values());
     }
 
-    private List<MonthlyTrend> buildMonthlyTrends(Long userId) {
-        List<Object[]> results = userId == null
-                ? recordRepository.getMonthlyTrends()
-                : recordRepository.getMonthlyTrendsByUser(userId);
+    private List<MonthlyTrend> buildMonthlyTrends(Long workspaceId) {
+        List<Object[]> results = recordRepository.getMonthlyTrendsByWorkspace(workspaceId);
         Map<String, MonthlyTrend> trendMap = new LinkedHashMap<>();
 
         for (Object[] row : results) {
-            // skip malformed rows from native aggregation
             if (row == null || row.length < 4) {
                 continue;
             }
@@ -127,7 +134,6 @@ public class DashboardService {
                     ? (BigDecimal) row[3]
                     : BigDecimal.ZERO;
             if (type == null || year == 0 || month == 0) {
-                // ignore rows missing a valid time bucket
                 continue;
             }
 
@@ -154,10 +160,8 @@ public class DashboardService {
         return new ArrayList<>(trendMap.values());
     }
 
-    private List<FinancialRecordResponse> buildRecentTransactions(Long userId) {
-        List<FinancialRecord> records = userId == null
-                ? recordRepository.findTop10ByOrderByDateDescIdDesc()
-                : recordRepository.findTop10ByUserIdOrderByDateDescIdDesc(userId);
+    private List<FinancialRecordResponse> buildRecentTransactions(Long workspaceId) {
+        List<FinancialRecord> records = recordRepository.findTop10ByWorkspaceIdOrderByDateDescIdDesc(workspaceId);
         return records.stream().map(record -> FinancialRecordResponse.builder()
                 .id(record.getId())
                 .amount(record.getAmount())

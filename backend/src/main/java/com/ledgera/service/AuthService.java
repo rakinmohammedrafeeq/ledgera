@@ -2,10 +2,15 @@ package com.ledgera.service;
 
 import com.ledgera.dto.*;
 import com.ledgera.entity.User;
+import com.ledgera.entity.Workspace;
+import com.ledgera.entity.WorkspaceMember;
 import com.ledgera.enums.Role;
+import com.ledgera.enums.WorkspacePermission;
 import com.ledgera.exception.BadRequestException;
 import com.ledgera.exception.ResourceNotFoundException;
 import com.ledgera.repository.UserRepository;
+import com.ledgera.repository.WorkspaceRepository;
+import com.ledgera.repository.WorkspaceMemberRepository;
 import com.ledgera.security.JwtTokenProvider;
 import com.ledgera.config.RateLimitConfig;
 import io.github.bucket4j.Bucket;
@@ -15,6 +20,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -25,6 +31,8 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
@@ -33,6 +41,8 @@ public class AuthService {
     private final RateLimitConfig rateLimitConfig;
 
     public AuthService(UserRepository userRepository,
+                       WorkspaceRepository workspaceRepository,
+                       WorkspaceMemberRepository workspaceMemberRepository,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
                        JwtTokenProvider jwtTokenProvider,
@@ -40,6 +50,8 @@ public class AuthService {
                        Map<String, Bucket> passwordResetBuckets,
                        RateLimitConfig rateLimitConfig) {
         this.userRepository = userRepository;
+        this.workspaceRepository = workspaceRepository;
+        this.workspaceMemberRepository = workspaceMemberRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -54,11 +66,27 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        // issue a JWT for the authenticated session
-        String token = jwtTokenProvider.generateToken(authentication);
-
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Get current workspace or default workspace
+        Long workspaceId = null;
+        if (user.getCurrentWorkspace() != null) {
+            workspaceId = user.getCurrentWorkspace().getId();
+        } else {
+            // Find user's first workspace
+            var workspaces = workspaceRepository.findWorkspacesByUserId(user.getId());
+            if (!workspaces.isEmpty()) {
+                workspaceId = workspaces.get(0).getId();
+                user.setCurrentWorkspace(workspaces.get(0));
+                userRepository.save(user);
+            }
+        }
+
+        // issue a JWT with workspace context
+        String token = workspaceId != null 
+            ? jwtTokenProvider.generateTokenWithWorkspace(user.getEmail(), user.getRole().name(), workspaceId)
+            : jwtTokenProvider.generateTokenFromEmail(user.getEmail(), user.getRole().name());
 
         return AuthResponse.builder()
                 .token(token)
@@ -68,24 +96,15 @@ public class AuthService {
                 .build();
     }
 
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         // prevent duplicate accounts
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("Email is already registered");
         }
 
-        Role role;
-        try {
-            role = Role.valueOf(request.getRole().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            // keep role input constrained to supported values
-            throw new BadRequestException("Invalid role. Must be ANALYST or VIEWER");
-        }
-
-        // do not allow self-registering as admin
-        if (role == Role.ADMIN) {
-            throw new BadRequestException("Cannot register as ADMIN");
-        }
+        // Automatically assign ANALYST role (full access to their own workspace)
+        Role role = Role.ANALYST;
 
         User user = User.builder()
                 .name(request.getName())
@@ -95,9 +114,41 @@ public class AuthService {
                 .active(true)
                 .build();
 
+        user = userRepository.save(user);
+
+        // Create default workspace with user's first name
+        String firstName = extractFirstName(request.getName());
+        String workspaceName = firstName + "'s Workspace";
+        String slug = generateSlug(workspaceName) + "-" + user.getId();
+        
+        Workspace workspace = Workspace.builder()
+                .name(workspaceName)
+                .slug(slug)
+                .owner(user)
+                .isActive(true)
+                .build();
+        
+        workspace = workspaceRepository.save(workspace);
+        
+        // Add user as OWNER of their workspace
+        WorkspaceMember member = WorkspaceMember.builder()
+                .workspace(workspace)
+                .user(user)
+                .permission(WorkspacePermission.OWNER)
+                .isActive(true)
+                .build();
+        
+        workspaceMemberRepository.save(member);
+        
+        // Set as current workspace
+        user.setCurrentWorkspace(workspace);
         userRepository.save(user);
 
-        String token = jwtTokenProvider.generateTokenFromEmail(user.getEmail(), user.getRole().name());
+        String token = jwtTokenProvider.generateTokenWithWorkspace(
+                user.getEmail(), 
+                user.getRole().name(), 
+                workspace.getId()
+        );
 
         return AuthResponse.builder()
                 .token(token)
@@ -105,6 +156,22 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .build();
+    }
+
+    private String extractFirstName(String fullName) {
+        if (fullName == null || fullName.trim().isEmpty()) {
+            return "User";
+        }
+        String[] parts = fullName.trim().split("\\s+");
+        return parts[0];
+    }
+
+    private String generateSlug(String name) {
+        return name.toLowerCase()
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 
     public MessageResponse forgotPassword(ForgotPasswordRequest request) {

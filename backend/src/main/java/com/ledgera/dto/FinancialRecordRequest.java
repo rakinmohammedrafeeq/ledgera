@@ -28,7 +28,4 @@ public class FinancialRecordRequest {
 
     @Size(max = 500, message = "Description must not exceed 500 characters")
     private String description;
-
-    @NotNull(message = "User is required")
-    private Long userId;
 }

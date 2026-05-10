@@ -25,16 +25,16 @@ public class FinancialRecordController {
     }
 
     @PostMapping
-    // only analysts can create records
-    @PreAuthorize("hasRole('ANALYST')")
+    // allow any authenticated role; workspace permission is enforced in the service
+    @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST', 'VIEWER')")
     public ResponseEntity<FinancialRecordResponse> createRecord(
             @Valid @RequestBody FinancialRecordRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(recordService.createRecord(request));
     }
 
     @PutMapping("/{id}")
-    // admins and analysts can update records
-    @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
+    // allow any authenticated role; workspace permission is enforced in the service
+    @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST', 'VIEWER')")
     public ResponseEntity<FinancialRecordResponse> updateRecord(
             @PathVariable Long id,
             @Valid @RequestBody FinancialRecordRequest request) {
@@ -42,8 +42,8 @@ public class FinancialRecordController {
     }
 
     @DeleteMapping("/{id}")
-    // admins and analysts can delete records
-    @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST')")
+    // allow any authenticated role; workspace permission is enforced in the service
+    @PreAuthorize("hasAnyRole('ADMIN', 'ANALYST', 'VIEWER')")
     public ResponseEntity<Void> deleteRecord(@PathVariable Long id) {
         recordService.deleteRecord(id);
         return ResponseEntity.noContent().build();

@@ -22,31 +22,59 @@ Ledgera is a full-stack collaborative finance platform built for modern teams an
 
 ### Authentication & Security
 - JWT-based authentication and authorization
-- Password reset flow with email integration (Resend API)
+- OTP-based password reset flow with email integration (Resend API)
 - Rate limiting for password reset requests (3 per 15 minutes)
-- Role-based access control (Admin/User)
-- Secure token management with 15-minute expiry
+- Multi-level role-based access control (Admin/Analyst/Viewer)
+- Secure token management with configurable expiry
+- Protected routes and API endpoints
+
+### Workspace Management
+- Multi-workspace support for team collaboration
+- Workspace-scoped financial records and analytics
+- Three permission levels: Owner, Editor, Viewer
+- Workspace member management and invitations
+- Automatic workspace switching
+- Workspace deletion with safety validations
 
 ### Financial Management
-- Income and expense tracking
-- Advanced filtering and search
-- Category-based organization
-- Transaction history
-- Export and reporting
+- Income and expense tracking with custom categories
+- Advanced filtering and search capabilities
+- Workspace-scoped transaction management
+- Permission-based record creation/editing
+- Transaction history with user attribution
+- Real-time data synchronization
 
 ### Analytics & Visualization
 - Interactive dashboard with real-time analytics
-- Monthly trend charts
+- Monthly trend charts (income vs expenses)
 - Category-wise spending breakdown
 - Income vs expense comparisons
 - Recent activity feed
+- Workspace-specific analytics
+
+### Admin Platform Management
+- Dedicated admin panel for platform-wide user management
+- User activation/deactivation controls
+- Search and filter users by status, role, email
+- View user workspace associations
+- Prevent self-deactivation safeguards
+- Professional admin UX with confirmation modals
+
+### UI/UX Features
+- System theme detection (Light/Dark/System)
+- Responsive design for mobile and desktop
+- Modern glassmorphic UI components
+- Smooth animations and transitions
+- Toast notifications for user feedback
+- Accessible components (WCAG considerations)
 
 ### Architecture
 - RESTful API with Spring Boot
 - Layered architecture (Controller → Service → Repository)
 - Database migrations with Flyway
-- Comprehensive error handling
-- Detailed logging and monitoring  
+- Comprehensive error handling with user-friendly messages
+- Detailed logging and monitoring
+- Workspace context management  
 
 ---
 
@@ -55,13 +83,16 @@ Ledgera is a full-stack collaborative finance platform built for modern teams an
 Ledgera demonstrates production-grade full-stack development practices:
 
 - **Enterprise Architecture** — Layered backend design with clear separation of concerns
-- **Security First** — JWT authentication, role-based access control, rate limiting
+- **Multi-Tenancy** — Workspace-based architecture for team collaboration
+- **Security First** — JWT authentication, role-based access control, workspace permissions, rate limiting
 - **Modern Stack** — Spring Boot 3, React 18, TypeScript, PostgreSQL
-- **Email Integration** — Professional password reset flow with Resend API
+- **Email Integration** — Professional OTP-based password reset flow with Resend API
 - **Scalable Design** — RESTful API, database migrations, comprehensive error handling
+- **Admin Platform** — Dedicated admin panel for platform-wide user management
+- **Modern UX** — System theme detection, responsive design, accessible components
 - **Developer Experience** — Hot reload, TypeScript, ESLint, detailed logging
 
-Built to reflect production-level design practices used in modern full-stack applications.
+Built to reflect production-level design practices used in modern SaaS applications.
 
 ---
 
@@ -109,41 +140,62 @@ ledgera/
 │  │  │  ├─ RateLimitConfig.java     # Rate limiting
 │  │  │  └─ SecurityConfig.java      # Spring Security
 │  │  ├─ controller/                  # REST controllers
+│  │  │  ├─ AdminUserController.java
 │  │  │  ├─ AuthController.java
 │  │  │  ├─ DashboardController.java
 │  │  │  ├─ FinancialRecordController.java
 │  │  │  ├─ HealthController.java
-│  │  │  └─ UserController.java
+│  │  │  ├─ OtpController.java
+│  │  │  ├─ UserController.java
+│  │  │  ├─ WorkspaceController.java
+│  │  │  └─ WorkspaceMemberController.java
 │  │  ├─ dto/                         # Data Transfer Objects
 │  │  ├─ entity/                      # JPA entities
 │  │  │  ├─ FinancialRecord.java
-│  │  │  └─ User.java
+│  │  │  ├─ User.java
+│  │  │  ├─ Workspace.java
+│  │  │  ├─ WorkspaceInvitation.java
+│  │  │  └─ WorkspaceMember.java
 │  │  ├─ enums/                       # Enumerations
 │  │  │  ├─ Role.java
-│  │  │  └─ TransactionType.java
+│  │  │  ├─ TransactionType.java
+│  │  │  └─ WorkspacePermission.java
 │  │  ├─ exception/                   # Exception handling
 │  │  │  └─ GlobalExceptionHandler.java
 │  │  ├─ repository/                  # Data access layer
 │  │  │  ├─ FinancialRecordRepository.java
 │  │  │  ├─ FinancialRecordSpecification.java
-│  │  │  └─ UserRepository.java
+│  │  │  ├─ UserRepository.java
+│  │  │  ├─ WorkspaceRepository.java
+│  │  │  ├─ WorkspaceInvitationRepository.java
+│  │  │  └─ WorkspaceMemberRepository.java
 │  │  ├─ security/                    # Security components
 │  │  │  ├─ CustomUserDetailsService.java
 │  │  │  ├─ JwtAuthenticationFilter.java
-│  │  │  └─ JwtTokenProvider.java
+│  │  │  ├─ JwtTokenProvider.java
+│  │  │  ├─ RequireWorkspacePermission.java
+│  │  │  ├─ WorkspaceContextHolder.java
+│  │  │  └─ WorkspacePermissionEvaluator.java
 │  │  └─ service/                     # Business logic
+│  │     ├─ AdminUserService.java
 │  │     ├─ AuthService.java
 │  │     ├─ CurrentUserService.java
 │  │     ├─ DashboardService.java
 │  │     ├─ EmailService.java
 │  │     ├─ FinancialRecordService.java
-│  │     └─ UserService.java
+│  │     ├─ UserService.java
+│  │     ├─ WorkspaceService.java
+│  │     └─ WorkspaceMemberService.java
 │  ├─ src/main/resources/
 │  │  ├─ application.properties       # Main config
 │  │  ├─ application-h2.properties    # H2 profile
 │  │  └─ db/migration/                # Flyway migrations
 │  │     ├─ V1__init.sql
-│  │     └─ V2__backfill_financial_record_users.sql
+│  │     ├─ V2__backfill_financial_record_users.sql
+│  │     ├─ V3__add_workspaces.sql
+│  │     ├─ V4__add_otp_fields.sql
+│  │     ├─ V5__update_workspace_names_to_first_name.sql
+│  │     └─ V6__ensure_workspace_owners_are_members.sql
 │  ├─ .env                            # Environment variables
 │  ├─ .env.example                    # Environment template
 │  ├─ Dockerfile                      # Docker configuration
@@ -153,11 +205,14 @@ ledgera/
 ├─ frontend/                          # React + Vite SPA
 │  ├─ src/
 │  │  ├─ api/                         # API client
+│  │  │  ├─ adminApi.ts
 │  │  │  ├─ authApi.ts
 │  │  │  ├─ client.ts
 │  │  │  ├─ dashboardApi.ts
 │  │  │  ├─ recordsApi.ts
-│  │  │  └─ usersApi.ts
+│  │  │  ├─ usersApi.ts
+│  │  │  ├─ workspaceApi.ts
+│  │  │  └─ workspaceMemberApi.ts
 │  │  ├─ components/                  # React components
 │  │  │  ├─ auth/                     # Auth components
 │  │  │  ├─ backend/                  # Backend status
@@ -165,15 +220,22 @@ ledgera/
 │  │  │  ├─ landing/                  # Landing page
 │  │  │  ├─ layout/                   # Layout components
 │  │  │  ├─ records/                  # Record components
+│  │  │  ├─ workspace/                # Workspace components
 │  │  │  └─ ui/                       # UI primitives
 │  │  ├─ config/                      # Configuration
 │  │  │  └─ brandAssets.ts            # Logo & branding
 │  │  ├─ contexts/                    # React contexts
+│  │  │  ├─ AuthContext.tsx
+│  │  │  ├─ SidebarContext.tsx
+│  │  │  ├─ ThemeContext.tsx
+│  │  │  └─ WorkspaceContext.tsx
 │  │  ├─ hooks/                       # Custom hooks
 │  │  ├─ pages/                       # Page components
+│  │  │  ├─ admin/                    # Admin pages
 │  │  │  ├─ auth/                     # Auth pages
 │  │  │  ├─ dashboard/                # Dashboard page
 │  │  │  ├─ records/                  # Records page
+│  │  │  ├─ workspace/                # Workspace pages
 │  │  │  └─ LandingPage.tsx
 │  │  ├─ store/                       # State management
 │  │  ├─ types/                       # TypeScript types
@@ -309,6 +371,8 @@ If data initialization is enabled:
 - **Email:** rakinmohammedrafeeq@gmail.com
 - **Password:** admin123
 
+**Note:** On first login, a default workspace is automatically created for each user.
+
 ---
 
 ## Build Commands
@@ -357,24 +421,41 @@ npm run preview
 ### Authentication (`/api/auth`)
 - `POST /api/auth/register` — User registration
 - `POST /api/auth/login` — User login (returns JWT)
-- `POST /api/auth/forgot-password` — Request password reset
-- `POST /api/auth/reset-password` — Reset password with token
+- `POST /api/auth/request-otp` — Request OTP for password reset
+- `POST /api/auth/verify-otp` — Verify OTP code
+- `POST /api/auth/reset-password` — Reset password with OTP
 
 ### Users (`/api/users`)
 - `GET /api/users/me` — Get current user profile
-- `GET /api/users` — List all users (Admin only)
-- `PUT /api/users/{id}` — Update user (Admin only)
-- `DELETE /api/users/{id}` — Delete user (Admin only)
+- `PUT /api/users/me` — Update current user profile
+
+### Admin Users (`/api/admin/users`)
+- `GET /api/admin/users` — List all users with pagination (Admin only)
+- `PUT /api/admin/users/{id}/status` — Activate/deactivate user (Admin only)
+
+### Workspaces (`/api/workspaces`)
+- `GET /api/workspaces` — List user's workspaces
+- `POST /api/workspaces` — Create new workspace
+- `GET /api/workspaces/{id}` — Get workspace details
+- `PUT /api/workspaces/{id}` — Update workspace (Owner only)
+- `DELETE /api/workspaces/{id}` — Delete workspace (Owner only)
+- `POST /api/workspaces/{id}/switch` — Switch to workspace
+
+### Workspace Members (`/api/workspaces/{workspaceId}/members`)
+- `GET /api/workspaces/{workspaceId}/members` — List workspace members
+- `POST /api/workspaces/{workspaceId}/members/invite` — Invite member (Owner only)
+- `PUT /api/workspaces/{workspaceId}/members/{memberId}` — Update member permission (Owner only)
+- `DELETE /api/workspaces/{workspaceId}/members/{memberId}` — Remove member (Owner only)
 
 ### Financial Records (`/api/records`)
-- `GET /api/records` — List records with filtering
-- `POST /api/records` — Create new record
+- `GET /api/records` — List records with filtering (workspace-scoped)
+- `POST /api/records` — Create new record (Editor/Owner only)
 - `GET /api/records/{id}` — Get record by ID
-- `PUT /api/records/{id}` — Update record
-- `DELETE /api/records/{id}` — Delete record
+- `PUT /api/records/{id}` — Update record (Editor/Owner only)
+- `DELETE /api/records/{id}` — Delete record (Editor/Owner only)
 
 ### Dashboard (`/api/dashboard`)
-- `GET /api/dashboard` — Get dashboard analytics and metrics
+- `GET /api/dashboard` — Get dashboard analytics (workspace-scoped)
 
 ### Health Check
 - `GET /healthz` — Health check endpoint (unauthenticated)
@@ -426,13 +507,22 @@ npm run preview
 Interactive showcase with animated statistics and smooth transitions.
 
 ### Dashboard
-Real-time analytics with monthly trends, category breakdowns, and recent activity.
+Real-time analytics with monthly trends, category breakdowns, and recent activity. Workspace-scoped data visualization.
 
 ### Financial Records
-Advanced filtering, search, and management of transactions.
+Advanced filtering, search, and management of transactions. Permission-based access controls.
+
+### Workspace Management
+Create and manage multiple workspaces. Invite team members with granular permissions (Owner/Editor/Viewer).
+
+### Admin Panel
+Platform-wide user management with activation controls, search, and filtering capabilities.
 
 ### Authentication
-Secure login, registration, and password reset flow.
+Secure login, registration, and OTP-based password reset flow.
+
+### Theme System
+Automatic system theme detection with manual Light/Dark/System mode selection.
 
 ---
 

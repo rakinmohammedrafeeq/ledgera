@@ -4,20 +4,19 @@ import com.ledgera.dto.FinancialRecordRequest;
 import com.ledgera.dto.FinancialRecordResponse;
 import com.ledgera.entity.FinancialRecord;
 import com.ledgera.entity.User;
-import com.ledgera.enums.Role;
+import com.ledgera.entity.Workspace;
 import com.ledgera.enums.TransactionType;
+import com.ledgera.enums.WorkspacePermission;
 import com.ledgera.exception.ForbiddenException;
 import com.ledgera.exception.ResourceNotFoundException;
 import com.ledgera.repository.FinancialRecordRepository;
 import com.ledgera.repository.FinancialRecordSpecification;
-import com.ledgera.repository.UserRepository;
+import com.ledgera.repository.WorkspaceMemberRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -26,25 +25,34 @@ import java.time.LocalDate;
 public class FinancialRecordService {
 
     private final FinancialRecordRepository recordRepository;
-    private final UserRepository userRepository;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserService currentUserService;
 
-    public FinancialRecordService(FinancialRecordRepository recordRepository, UserRepository userRepository, CurrentUserService currentUserService) {
+    public FinancialRecordService(FinancialRecordRepository recordRepository,
+                                  WorkspaceMemberRepository workspaceMemberRepository,
+                                  CurrentUserService currentUserService) {
         this.recordRepository = recordRepository;
-        this.userRepository = userRepository;
+        this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserService = currentUserService;
     }
 
     public FinancialRecordResponse createRecord(FinancialRecordRequest request) {
         User currentUser = currentUserService.requireCurrentUser();
-        // only analysts are allowed to create records
-        if (currentUser.getRole() != Role.ANALYST) {
-            throw new ForbiddenException("Only ANALYST users can create records");
+
+        // Get current workspace
+        Workspace workspace = currentUser.getCurrentWorkspace();
+        if (workspace == null) {
+            throw new ForbiddenException("No workspace selected");
         }
 
-        User owner = userRepository.findById(request.getUserId())
-                // ensure the record references a valid user
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+        // Check permission - need EDITOR or OWNER
+        WorkspacePermission permission = workspaceMemberRepository
+                .findPermissionByWorkspaceAndUser(workspace.getId(), currentUser.getId())
+                .orElseThrow(() -> new ForbiddenException("You don't have access to this workspace"));
+
+        if (permission == WorkspacePermission.VIEWER) {
+            throw new ForbiddenException("Viewers cannot create records");
+        }
 
         FinancialRecord record = FinancialRecord.builder()
                 .amount(request.getAmount())
@@ -52,7 +60,8 @@ public class FinancialRecordService {
                 .category(request.getCategory())
                 .date(request.getDate())
                 .description(request.getDescription())
-                .user(owner)
+                .user(currentUser)
+                .workspace(workspace)
                 .build();
 
         return toResponse(recordRepository.save(record));
@@ -60,38 +69,54 @@ public class FinancialRecordService {
 
     public FinancialRecordResponse updateRecord(Long id, FinancialRecordRequest request) {
         FinancialRecord record = recordRepository.findById(id)
-                // fail fast if the record doesn't exist
                 .orElseThrow(() -> new ResourceNotFoundException("Record not found with id: " + id));
 
         User currentUser = currentUserService.requireCurrentUser();
-        // viewers can read but not modify records
-        if (currentUser.getRole() == Role.VIEWER) {
-            throw new ForbiddenException("VIEWER users cannot update records");
+
+        // Check workspace access
+        Workspace workspace = currentUser.getCurrentWorkspace();
+        if (workspace == null || !record.getWorkspace().getId().equals(workspace.getId())) {
+            throw new ForbiddenException("Record not found in current workspace");
         }
 
-        User owner = userRepository.findById(request.getUserId())
-                // ensure the updated owner exists
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+        // Check permission - need EDITOR or OWNER
+        WorkspacePermission permission = workspaceMemberRepository
+                .findPermissionByWorkspaceAndUser(workspace.getId(), currentUser.getId())
+                .orElseThrow(() -> new ForbiddenException("You don't have access to this workspace"));
+
+        if (permission == WorkspacePermission.VIEWER) {
+            throw new ForbiddenException("Viewers cannot update records");
+        }
 
         record.setAmount(request.getAmount());
         record.setType(TransactionType.valueOf(request.getType()));
         record.setCategory(request.getCategory());
         record.setDate(request.getDate());
         record.setDescription(request.getDescription());
-        record.setUser(owner);
+        // Keep the original owner, don't change it
 
         return toResponse(recordRepository.save(record));
     }
 
     public void deleteRecord(Long id) {
         FinancialRecord record = recordRepository.findById(id)
-                // fail fast if the record doesn't exist
                 .orElseThrow(() -> new ResourceNotFoundException("Record not found with id: " + id));
 
         User currentUser = currentUserService.requireCurrentUser();
-        // viewers can read but not delete records
-        if (currentUser.getRole() == Role.VIEWER) {
-            throw new ForbiddenException("VIEWER users cannot delete records");
+
+        // Check workspace access
+        Workspace workspace = currentUser.getCurrentWorkspace();
+        if (workspace == null || !record.getWorkspace().getId().equals(workspace.getId())) {
+            throw new ForbiddenException("Record not found in current workspace");
+        }
+
+        // Check permission - need EDITOR or OWNER
+        WorkspacePermission permission = workspaceMemberRepository
+                .findPermissionByWorkspaceAndUser(workspace.getId(), currentUser.getId())
+                .orElseThrow(() -> new ForbiddenException("You don't have access to this workspace"));
+
+        if (permission == WorkspacePermission.VIEWER) {
+            throw new ForbiddenException("Viewers cannot delete records");
         }
 
         recordRepository.delete(record);
@@ -109,24 +134,41 @@ public class FinancialRecordService {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         User currentUser = currentUserService.requireCurrentUser();
-        // viewers only see their own records; others see all
-        Specification<FinancialRecord> spec = currentUser.getRole() == Role.VIEWER
-                ? FinancialRecordSpecification.withFilters(startDate, endDate, category, type, currentUser.getId())
-                : FinancialRecordSpecification.withFilters(startDate, endDate, category, type);
+
+        // Get current workspace
+        Workspace workspace = currentUser.getCurrentWorkspace();
+        if (workspace == null) {
+            throw new ForbiddenException("No workspace selected");
+        }
+
+        // Check workspace access
+        WorkspacePermission permission = workspaceMemberRepository
+                .findPermissionByWorkspaceAndUser(workspace.getId(), currentUser.getId())
+                .orElseThrow(() -> new ForbiddenException("You don't have access to this workspace"));
+
+        // All records are scoped to current workspace
+        Specification<FinancialRecord> spec = FinancialRecordSpecification.withFilters(
+                startDate, endDate, category, type, workspace.getId());
 
         return recordRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     public FinancialRecordResponse getRecordById(Long id) {
         FinancialRecord record = recordRepository.findById(id)
-                // fail fast if the record doesn't exist
                 .orElseThrow(() -> new ResourceNotFoundException("Record not found with id: " + id));
 
         User currentUser = currentUserService.requireCurrentUser();
-        // viewers can only access their own records
-        if (currentUser.getRole() == Role.VIEWER && !record.getUser().getId().equals(currentUser.getId())) {
-            throw new ForbiddenException("VIEWER users can only access their own records");
+
+        // Check workspace access
+        Workspace workspace = currentUser.getCurrentWorkspace();
+        if (workspace == null || !record.getWorkspace().getId().equals(workspace.getId())) {
+            throw new ForbiddenException("Record not found in current workspace");
         }
+
+        // Check workspace access
+        workspaceMemberRepository
+                .findPermissionByWorkspaceAndUser(workspace.getId(), currentUser.getId())
+                .orElseThrow(() -> new ForbiddenException("You don't have access to this workspace"));
 
         return toResponse(record);
     }

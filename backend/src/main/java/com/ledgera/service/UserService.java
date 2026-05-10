@@ -1,11 +1,13 @@
 package com.ledgera.service;
 
+import com.ledgera.dto.ChangePasswordRequest;
 import com.ledgera.dto.UserResponse;
 import com.ledgera.entity.User;
 import com.ledgera.enums.Role;
 import com.ledgera.exception.BadRequestException;
 import com.ledgera.exception.ResourceNotFoundException;
 import com.ledgera.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -17,9 +19,38 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, CurrentUserService currentUserService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    public UserResponse getCurrentUser() {
+        User user = currentUserService.requireCurrentUser();
+        return toResponse(user);
+    }
+
+    public UserResponse updateCurrentUserName(String name) {
+        User user = currentUserService.requireCurrentUser();
+        user.setName(name);
+        userRepository.save(user);
+        return toResponse(user);
+    }
+
+    public void changePassword(ChangePasswordRequest request) {
+        User user = currentUserService.requireCurrentUser();
+        
+        // Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+        
+        // Update to new password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     public List<UserResponse> getAllUsers() {

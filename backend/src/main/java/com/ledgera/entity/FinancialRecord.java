@@ -46,6 +46,10 @@ public class FinancialRecord {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "workspace_id", nullable = false)
+    private Workspace workspace;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

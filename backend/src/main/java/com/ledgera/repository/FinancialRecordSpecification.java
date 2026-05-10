@@ -19,7 +19,7 @@ public class FinancialRecordSpecification {
             LocalDate endDate,
             String category,
             TransactionType type,
-            Long userId) {
+            Long workspaceId) {
 
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -36,8 +36,8 @@ public class FinancialRecordSpecification {
             if (type != null) {
                 predicates.add(criteriaBuilder.equal(root.get("type"), type));
             }
-            if (userId != null) {
-                predicates.add(criteriaBuilder.equal(root.get("user").get("id"), userId));
+            if (workspaceId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("workspace").get("id"), workspaceId));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

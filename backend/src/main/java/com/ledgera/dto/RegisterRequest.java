@@ -2,7 +2,6 @@ package com.ledgera.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,8 +21,4 @@ public class RegisterRequest {
     @NotBlank(message = "Password is required")
     @Size(min = 6, max = 100, message = "Password must be at least 6 characters")
     private String password;
-
-    @NotBlank(message = "Role is required")
-    @Pattern(regexp = "^(ANALYST|VIEWER)$", message = "Role must be ANALYST or VIEWER")
-    private String role;
 }
