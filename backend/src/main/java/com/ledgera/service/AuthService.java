@@ -7,6 +7,8 @@ import com.ledgera.exception.BadRequestException;
 import com.ledgera.exception.ResourceNotFoundException;
 import com.ledgera.repository.UserRepository;
 import com.ledgera.security.JwtTokenProvider;
+import com.ledgera.config.RateLimitConfig;
+import io.github.bucket4j.Bucket;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -14,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -23,15 +26,24 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final EmailService emailService;
+    private final Map<String, Bucket> passwordResetBuckets;
+    private final RateLimitConfig rateLimitConfig;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
-                       JwtTokenProvider jwtTokenProvider) {
+                       JwtTokenProvider jwtTokenProvider,
+                       EmailService emailService,
+                       Map<String, Bucket> passwordResetBuckets,
+                       RateLimitConfig rateLimitConfig) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.emailService = emailService;
+        this.passwordResetBuckets = passwordResetBuckets;
+        this.rateLimitConfig = rateLimitConfig;
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -94,7 +106,17 @@ public class AuthService {
     }
 
     public MessageResponse forgotPassword(ForgotPasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        String email = request.getEmail().toLowerCase().trim();
+        
+        // Rate limiting: prevent abuse
+        Bucket bucket = passwordResetBuckets.computeIfAbsent(email, 
+            k -> rateLimitConfig.createPasswordResetBucket());
+        
+        if (!bucket.tryConsume(1)) {
+            throw new BadRequestException("Too many password reset requests. Please try again later.");
+        }
+
+        User user = userRepository.findByEmail(email)
                 // don't reveal whether other emails exist
                 .orElseThrow(() -> new ResourceNotFoundException("No account found with this email"));
 
@@ -105,8 +127,16 @@ public class AuthService {
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
+        // send password reset email via Resend
+        try {
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), resetToken);
+        } catch (Exception e) {
+            // log error but don't expose email sending failures to prevent enumeration
+            throw new RuntimeException("Failed to send password reset email. Please try again later.");
+        }
+
         return MessageResponse.builder()
-                .message("Password reset token: " + resetToken)
+                .message("If an account exists with this email, you will receive password reset instructions.")
                 .build();
     }
 

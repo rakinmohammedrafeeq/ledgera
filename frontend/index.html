@@ -1,36 +1,47 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
-    <script>
-      (function () {
-        try {
-          var t = localStorage.getItem('theme');
-          var d = document.documentElement;
-          if (t === 'light') d.classList.remove('dark');
-          else if (t === 'dark') d.classList.add('dark');
-          else if (window.matchMedia('(prefers-color-scheme: light)').matches)
-            d.classList.remove('dark');
-          else d.classList.add('dark');
-        } catch (e) {}
-      })();
-    </script>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/gold-logo.png?v=10" />
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ledgera — Modern Finance Workspace</title>
     <meta
       name="description"
-      content="Ledgera - Finance Data Processing and Access Control System. Track income, expenses, and manage financial analytics."
+      content="Ledgera is a modern finance workspace for tracking expenses, managing team records, and gaining insights across your finances."
     />
-    <title>Ledgera</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap"
-      rel="stylesheet"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ledgera" />
+    <meta property="og:title" content="Ledgera — Modern Finance Workspace" />
+    <meta
+      property="og:description"
+      content="Track expenses, manage records, and oversee your team — all in one workspace."
     />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Ledgera — Modern Finance Workspace" />
+    <meta
+      name="twitter:description"
+      content="A modern finance workspace for dashboards, records, and team management."
+    />
+
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f0f14" media="(prefers-color-scheme: dark)" />
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

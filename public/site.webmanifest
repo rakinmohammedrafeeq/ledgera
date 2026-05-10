@@ -1,0 +1,18 @@
+{
+  "name": "Ledgera — Modern Finance Workspace",
+  "short_name": "Ledgera",
+  "description": "Track expenses, manage records, and oversee your team — all in one workspace.",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#6366f1",
+  "background_color": "#0f0f14",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/"
+}

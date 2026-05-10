@@ -1,0 +1,493 @@
+import { useEffect, useMemo, useState } from 'react'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import {
+  useAssignableQuery,
+  useCreateRecordMutation,
+  useDeleteRecordMutation,
+  useRecordsQuery,
+  useUpdateRecordMutation,
+} from '@/hooks'
+import type { FinancialRecordResponse } from '@/types/record'
+import { formatCurrency } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+
+const recordSchema = z.object({
+  amount: z.coerce.number().positive('Amount must be positive'),
+  type: z.enum(['INCOME', 'EXPENSE']),
+  category: z.string().min(1, 'Category required'),
+  date: z.string().min(1, 'Date required'),
+  description: z.string().optional(),
+  userId: z.coerce.number().positive('Select owner'),
+})
+
+type RecordForm = z.infer<typeof recordSchema>
+
+export function RecordsPage() {
+  const { user } = useAuth()
+  const canCreate = user?.role === 'ANALYST'
+  const canMutate = user?.role === 'ANALYST' || user?.role === 'ADMIN'
+
+  const [page, setPage] = useState(0)
+  const [sort, setSort] = useState('date:desc')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [category, setCategory] = useState('')
+  const [typeFilter, setTypeFilter] = useState<'INCOME' | 'EXPENSE' | ''>('')
+
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<FinancialRecordResponse | null>(null)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+
+  const sortBy = sort.split(':')[0] as 'date' | 'amount'
+  const direction = sort.split(':')[1] as 'asc' | 'desc'
+
+  const queryParams = useMemo(
+    () => ({
+      page,
+      size: 12,
+      sortBy,
+      direction,
+      ...(startDate ? { startDate } : {}),
+      ...(endDate ? { endDate } : {}),
+      ...(category.trim() ? { category: category.trim() } : {}),
+      ...(typeFilter ? { type: typeFilter } : {}),
+    }),
+    [page, sortBy, direction, startDate, endDate, category, typeFilter],
+  )
+
+  const { data, isLoading } = useRecordsQuery(queryParams)
+  const { data: assignable = [] } = useAssignableQuery(canMutate && dialogOpen)
+
+  const createMut = useCreateRecordMutation()
+  const updateMut = useUpdateRecordMutation()
+  const deleteMut = useDeleteRecordMutation()
+
+  const form = useForm<RecordForm>({
+    resolver: zodResolver(recordSchema),
+    defaultValues: {
+      type: 'EXPENSE',
+      category: '',
+      date: new Date().toISOString().slice(0, 10),
+      description: '',
+      amount: 0,
+      userId: 0,
+    },
+  })
+
+  useEffect(() => {
+    if (!dialogOpen || editing) return
+    const first = assignable[0]?.id
+    if (first) {
+      form.setValue('userId', first)
+    }
+  }, [dialogOpen, editing, assignable, form])
+
+  const openNew = () => {
+    setEditing(null)
+    form.reset({
+      type: 'EXPENSE',
+      category: '',
+      date: new Date().toISOString().slice(0, 10),
+      description: '',
+      amount: 0,
+      userId: assignable[0]?.id ?? 0,
+    })
+    setDialogOpen(true)
+  }
+
+  const openEdit = (row: FinancialRecordResponse) => {
+    setEditing(row)
+    form.reset({
+      amount: Number(row.amount),
+      type: row.type as 'INCOME' | 'EXPENSE',
+      category: row.category,
+      date: row.date,
+      description: row.description ?? '',
+      userId: row.userId,
+    })
+    setDialogOpen(true)
+  }
+
+  const onSubmit = (values: RecordForm) => {
+    const payload = {
+      amount: values.amount,
+      type: values.type,
+      category: values.category,
+      date: values.date,
+      description: values.description || undefined,
+      userId: values.userId,
+    }
+    if (editing) {
+      updateMut.mutate(
+        { id: editing.id, body: payload },
+        {
+          onSuccess: () => {
+            toast.success('Record updated')
+            setDialogOpen(false)
+          },
+          onError: () => toast.error('Could not update record'),
+        },
+      )
+    } else {
+      createMut.mutate(payload, {
+        onSuccess: () => {
+          toast.success('Record created')
+          setDialogOpen(false)
+        },
+        onError: () => toast.error('Could not create record'),
+      })
+    }
+  }
+
+  const rows = data?.content ?? []
+  const totalPages = data?.totalPages ?? 0
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Records</h1>
+          <p className="text-muted-foreground">Filter and manage ledger entries</p>
+        </div>
+        {canCreate ? (
+          <Button onClick={openNew} className="gap-2">
+            <Plus className="h-4 w-4" />
+            New record
+          </Button>
+        ) : null}
+      </div>
+
+      <Card className="border-border/60 bg-card/60 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-base">Filters</CardTitle>
+          <CardDescription>Narrow down by period, category, and type</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Input
+            type="date"
+            className="w-auto"
+            value={startDate}
+            onChange={(e) => {
+              setPage(0)
+              setStartDate(e.target.value)
+            }}
+          />
+          <Input
+            type="date"
+            className="w-auto"
+            value={endDate}
+            onChange={(e) => {
+              setPage(0)
+              setEndDate(e.target.value)
+            }}
+          />
+          <Input
+            placeholder="Category"
+            className="max-w-xs"
+            value={category}
+            onChange={(e) => {
+              setPage(0)
+              setCategory(e.target.value)
+            }}
+          />
+          <Select
+            value={typeFilter || 'ALL'}
+            onValueChange={(v) => {
+              setPage(0)
+              setTypeFilter(v === 'ALL' ? '' : (v as 'INCOME' | 'EXPENSE'))
+            }}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All types</SelectItem>
+              <SelectItem value="INCOME">Income</SelectItem>
+              <SelectItem value="EXPENSE">Expense</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sort} onValueChange={(v) => { setPage(0); setSort(v) }}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date:desc">Date · newest</SelectItem>
+              <SelectItem value="date:asc">Date · oldest</SelectItem>
+              <SelectItem value="amount:desc">Amount · high</SelectItem>
+              <SelectItem value="amount:asc">Amount · low</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/60 bg-card/60 backdrop-blur-sm">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : rows.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">No records match your filters</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Owner</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  {canMutate ? <TableHead className="w-[120px]" /> : null}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-muted-foreground">{r.date}</TableCell>
+                    <TableCell className="font-medium">{r.category}</TableCell>
+                    <TableCell>
+                      <Badge variant={r.type === 'INCOME' ? 'default' : 'secondary'}>{r.type}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{r.userName ?? '—'}</div>
+                      <div className="text-xs text-muted-foreground">{r.userEmail}</div>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(Number(r.amount))}</TableCell>
+                    {canMutate ? (
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(r.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    ) : null}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+          {totalPages > 1 ? (
+            <div className="flex items-center justify-center gap-2 border-t p-4">
+              <Button variant="outline" size="sm" disabled={page <= 0} onClick={() => setPage((p) => p - 1)}>
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {page + 1} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit record' : 'New record'}</DialogTitle>
+            <DialogDescription>All fields are validated against the Ledgera API.</DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="INCOME">Income</SelectItem>
+                        <SelectItem value="EXPENSE">Expense</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="userId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Owner</FormLabel>
+                    <Select
+                      onValueChange={(v) => field.onChange(Number(v))}
+                      value={field.value ? String(field.value) : ''}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select user" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {assignable.map((u) => (
+                          <SelectItem key={u.id} value={String(u.id)}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Note (optional)</FormLabel>
+                    <FormControl>
+                      <Textarea rows={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createMut.isPending || updateMut.isPending}>
+                  {(createMut.isPending || updateMut.isPending) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteId != null} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete record?</AlertDialogTitle>
+            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteId == null) return
+                deleteMut.mutate(deleteId, {
+                  onSuccess: () => {
+                    toast.success('Deleted')
+                    setDeleteId(null)
+                  },
+                  onError: () => toast.error('Delete failed'),
+                })
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}
