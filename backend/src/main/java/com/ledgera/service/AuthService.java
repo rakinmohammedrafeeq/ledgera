@@ -9,6 +9,7 @@ import com.ledgera.repository.UserRepository;
 import com.ledgera.security.JwtTokenProvider;
 import com.ledgera.config.RateLimitConfig;
 import io.github.bucket4j.Bucket;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class AuthService {
 
@@ -107,34 +109,73 @@ public class AuthService {
 
     public MessageResponse forgotPassword(ForgotPasswordRequest request) {
         String email = request.getEmail().toLowerCase().trim();
-        
-        // Rate limiting: prevent abuse
-        Bucket bucket = passwordResetBuckets.computeIfAbsent(email, 
+
+        log.info("=== FORGOT PASSWORD REQUEST START ===");
+        log.info("Email: {}", email);
+
+        // Step 1: Rate limiting
+        Bucket bucket = passwordResetBuckets.computeIfAbsent(email,
             k -> rateLimitConfig.createPasswordResetBucket());
-        
+
         if (!bucket.tryConsume(1)) {
+            log.warn("Rate limit exceeded for password reset: {}", email);
             throw new BadRequestException("Too many password reset requests. Please try again later.");
         }
+        log.info("Step 1 PASSED: Rate limit check OK");
 
-        User user = userRepository.findByEmail(email)
-                // don't reveal whether other emails exist
-                .orElseThrow(() -> new ResourceNotFoundException("No account found with this email"));
-
-        // generate a one-time reset token
-        String resetToken = UUID.randomUUID().toString();
-        user.setResetToken(resetToken);
-        // keep reset tokens short-lived
-        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
-        userRepository.save(user);
-
-        // send password reset email via Resend
+        // Step 2: Find user
+        User user;
         try {
-            emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), resetToken);
+            user = userRepository.findByEmail(email)
+                    .orElse(null);
         } catch (Exception e) {
-            // log error but don't expose email sending failures to prevent enumeration
-            throw new RuntimeException("Failed to send password reset email. Please try again later.");
+            log.error("Step 2 FAILED: Database query error: {}", e.getMessage(), e);
+            throw new BadRequestException("Unable to process request. Please try again.");
         }
 
+        if (user == null) {
+            log.warn("Step 2: No account found for email: {}", email);
+            // Return success message anyway to avoid email enumeration
+            return MessageResponse.builder()
+                    .message("If an account exists with this email, you will receive password reset instructions.")
+                    .build();
+        }
+        log.info("Step 2 PASSED: User found - name={}, id={}", user.getName(), user.getId());
+
+        // Step 3: Generate reset token
+        String resetToken = UUID.randomUUID().toString();
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
+        log.info("Step 3 PASSED: Reset token generated");
+
+        // Step 4: Save token to database
+        try {
+            userRepository.save(user);
+            log.info("Step 4 PASSED: Token saved to database");
+        } catch (Exception e) {
+            log.error("Step 4 FAILED: Could not save token: {}", e.getMessage(), e);
+            throw new BadRequestException("Unable to process request. Please try again.");
+        }
+
+        // Step 5: Send email
+        try {
+            log.info("Step 5: Sending email via Resend...");
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), resetToken);
+            log.info("Step 5 PASSED: Email sent successfully");
+        } catch (Exception e) {
+            log.error("Step 5 FAILED: Email send error: {} - {}", e.getClass().getSimpleName(), e.getMessage(), e);
+            // Rollback the token since email failed
+            try {
+                user.setResetToken(null);
+                user.setResetTokenExpiry(null);
+                userRepository.save(user);
+            } catch (Exception rollbackEx) {
+                log.error("Token rollback also failed: {}", rollbackEx.getMessage());
+            }
+            throw new BadRequestException("Failed to send password reset email. Please try again later.");
+        }
+
+        log.info("=== FORGOT PASSWORD REQUEST SUCCESS ===");
         return MessageResponse.builder()
                 .message("If an account exists with this email, you will receive password reset instructions.")
                 .build();

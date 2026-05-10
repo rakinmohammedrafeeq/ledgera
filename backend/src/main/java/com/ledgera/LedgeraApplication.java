@@ -11,75 +11,67 @@ public class LedgeraApplication {
 
         try {
             Dotenv dotenv = Dotenv.load();
+            
+            System.out.println("=".repeat(60));
+            System.out.println("Loading environment variables from .env file");
+            System.out.println("=".repeat(60));
 
             // =========================
             // DATABASE
             // =========================
-            System.setProperty(
-                    "spring.datasource.url",
-                    dotenv.get("DB_URL", "")
-            );
+            String dbUrl = dotenv.get("DB_URL", "");
+            System.setProperty("spring.datasource.url", dbUrl);
+            System.out.println("✓ DB_URL loaded: " + (dbUrl.isEmpty() ? "MISSING" : "OK"));
 
-            System.setProperty(
-                    "spring.datasource.username",
-                    dotenv.get("DB_USERNAME", "")
-            );
+            String dbUsername = dotenv.get("DB_USERNAME", "");
+            System.setProperty("spring.datasource.username", dbUsername);
+            System.out.println("✓ DB_USERNAME loaded: " + (dbUsername.isEmpty() ? "MISSING" : "OK"));
 
-            System.setProperty(
-                    "spring.datasource.password",
-                    dotenv.get("DB_PASSWORD", "")
-            );
+            String dbPassword = dotenv.get("DB_PASSWORD", "");
+            System.setProperty("spring.datasource.password", dbPassword);
+            System.out.println("✓ DB_PASSWORD loaded: " + (dbPassword.isEmpty() ? "MISSING" : "OK"));
 
             // =========================
             // JWT
             // =========================
-            System.setProperty(
-                    "jwt.secret",
-                    dotenv.get("JWT_SECRET", "")
-            );
+            String jwtSecret = dotenv.get("JWT_SECRET", "");
+            System.setProperty("jwt.secret", jwtSecret);
+            System.out.println("✓ JWT_SECRET loaded: " + (jwtSecret.isEmpty() ? "MISSING" : "OK"));
 
-            System.setProperty(
-                    "jwt.expiration",
-                    dotenv.get("JWT_EXPIRATION", "86400000")
-            );
+            String jwtExpiration = dotenv.get("JWT_EXPIRATION", "86400000");
+            System.setProperty("jwt.expiration", jwtExpiration);
+            System.out.println("✓ JWT_EXPIRATION loaded: " + jwtExpiration);
 
             // =========================
             // RESEND EMAIL
             // =========================
-            System.setProperty(
-                    "RESEND_API_KEY",
-                    dotenv.get("RESEND_API_KEY", "")
-            );
+            String resendApiKey = dotenv.get("RESEND_API_KEY", "");
+            System.setProperty("resend.api.key", resendApiKey);
+            System.out.println("✓ RESEND_API_KEY loaded: " + (resendApiKey.isEmpty() ? "MISSING" : resendApiKey.substring(0, Math.min(10, resendApiKey.length())) + "..."));
 
-            System.setProperty(
-                    "RESEND_FROM_EMAIL",
-                    dotenv.get(
-                            "RESEND_FROM_EMAIL",
-                            "rakinmohammedrafeeq@gmail.com"
-                    )
-            );
+            String resendFromEmail = dotenv.get("RESEND_FROM_EMAIL", "onboarding@resend.dev");
+            System.setProperty("resend.from.email", resendFromEmail);
+            System.out.println("✓ RESEND_FROM_EMAIL loaded: " + resendFromEmail);
 
-            System.setProperty(
-                    "RESEND_FROM_NAME",
-                    dotenv.get(
-                            "RESEND_FROM_NAME",
-                            "Ledgera"
-                    )
-            );
+            String resendFromName = dotenv.get("RESEND_FROM_NAME", "Ledgera");
+            System.setProperty("resend.from.name", resendFromName);
+            System.out.println("✓ RESEND_FROM_NAME loaded: " + resendFromName);
 
             // =========================
             // APP URL
             // =========================
-            System.setProperty(
-                    "APP_BASE_URL",
-                    dotenv.get(
-                            "APP_BASE_URL",
-                            "http://localhost:5173"
-                    )
-            );
+            String appBaseUrl = dotenv.get("APP_BASE_URL", "http://localhost:5173");
+            System.setProperty("app.base.url", appBaseUrl);
+            System.out.println("✓ APP_BASE_URL loaded: " + appBaseUrl);
+            
+            System.out.println("=".repeat(60));
+            System.out.println("All environment variables loaded successfully!");
+            System.out.println("=".repeat(60));
 
         } catch (Exception e) {
-            System.out.println("Could not load .env file");
+            System.err.println("ERROR: Could not load .env file");
+            System.err.println("Error details: " + e.getMessage());
+            e.printStackTrace();
         }
 
         SpringApplication.run(LedgeraApplication.class, args);

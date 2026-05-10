@@ -160,7 +160,7 @@ export function InteractiveShowcase() {
               </div>
 
               {/* Chart */}
-              <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none">
+              <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.3" />
@@ -180,9 +180,9 @@ export function InteractiveShowcase() {
                     ${chartData.map((d, i) => {
                       const x = (i / (chartData.length - 1)) * 100
                       const y = chartHeight - (d.value / maxValue) * chartHeight
-                      return `L ${x} ${y}`
+                      return `L ${x}% ${y}`
                     }).join(' ')}
-                    L 100 ${chartHeight}
+                    L 100% ${chartHeight}
                     Z
                   `}
                   fill="url(#chartGradient)"
@@ -194,7 +194,7 @@ export function InteractiveShowcase() {
                   d={chartData.map((d, i) => {
                     const x = (i / (chartData.length - 1)) * 100
                     const y = chartHeight - (d.value / maxValue) * chartHeight
-                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`
+                    return `${i === 0 ? 'M' : 'L'} ${x}% ${y}`
                   }).join(' ')}
                   fill="none"
                   stroke="url(#lineGradient)"
@@ -214,17 +214,17 @@ export function InteractiveShowcase() {
                   return (
                     <g key={i}>
                       <circle
-                        cx={x}
+                        cx={`${x}%`}
                         cy={y}
                         r="4"
                         fill="rgb(99, 102, 241)"
-                        className="transition-all duration-300"
+                        className="transition-all duration-300 hover:r-6"
                         style={{
                           filter: 'drop-shadow(0 0 6px rgba(99, 102, 241, 0.8))',
                         }}
                       />
                       <circle
-                        cx={x}
+                        cx={`${x}%`}
                         cy={y}
                         r="2"
                         fill="white"
