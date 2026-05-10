@@ -105,10 +105,10 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{user?.name || 'User'}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
-                <p className="text-[11px] font-medium text-primary/80">{getRoleLabel(user?.role)}</p>
+              <div className="flex flex-col space-y-1 min-w-0 overflow-hidden">
+                <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                <p className="text-[11px] font-medium text-primary/80 truncate">{getRoleLabel(user?.role)}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

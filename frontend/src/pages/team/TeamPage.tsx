@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ToggleUserConfirm } from '@/components/team/ToggleUserConfirm'
 
 export function TeamPage() {
   const { user } = useAuth()
@@ -27,6 +28,16 @@ export function TeamPage() {
       onError: () => toast.error('Could not update member'),
     })
   }
+
+  // Sort users: current user first, then by name
+  const sortedData = [...data].sort((a, b) => {
+    const aIsCurrent = a.id === user?.id || a.email === user?.email
+    const bIsCurrent = b.id === user?.id || b.email === user?.email
+    
+    if (aIsCurrent) return -1
+    if (bIsCurrent) return 1
+    return a.name.localeCompare(b.name)
+  })
 
   return (
     <div className="space-y-6">
@@ -64,33 +75,63 @@ export function TeamPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium">{u.name}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{getRoleLabel(u.role)}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={u.active ? 'default' : 'secondary'}>
-                        {u.active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{u.createdAt}</TableCell>
-                    {isAdmin ? (
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={toggle.isPending}
-                          onClick={() => onToggle(u.id)}
-                        >
-                          {u.active ? 'Deactivate' : 'Activate'}
-                        </Button>
+                {sortedData.map((u) => {
+                  const isCurrentUser = u.id === user?.id || u.email === user?.email
+                  return (
+                    <TableRow 
+                      key={u.id}
+                      className={isCurrentUser ? 'bg-primary/[0.08] border-l-4 border-l-primary/60' : ''}
+                    >
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <span className={isCurrentUser ? 'text-primary' : ''}>{u.name}</span>
+                          {isCurrentUser && (
+                            <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0">
+                              You
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
-                    ) : null}
-                  </TableRow>
-                ))}
+                      <TableCell className={isCurrentUser ? 'text-primary/80' : ''}>
+                        {u.email}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{getRoleLabel(u.role)}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={u.active ? 'default' : 'secondary'}>
+                          {u.active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{u.createdAt}</TableCell>
+                      {isAdmin ? (
+                        <TableCell className="text-right">
+                          {isCurrentUser ? (
+                            <span className="text-xs text-muted-foreground/60 italic select-none">
+                              Cannot modify self
+                            </span>
+                          ) : (
+                            <ToggleUserConfirm
+                              userName={u.name}
+                              userEmail={u.email}
+                              isActive={u.active}
+                              onConfirm={() => onToggle(u.id)}
+                              trigger={
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={toggle.isPending}
+                                >
+                                  {u.active ? 'Deactivate' : 'Activate'}
+                                </Button>
+                              }
+                            />
+                          )}
+                        </TableCell>
+                      ) : null}
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}

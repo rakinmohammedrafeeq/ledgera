@@ -34,17 +34,17 @@ public class DataInitializer implements CommandLineRunner {
             logger.info("ℹ️  Admin seed disabled, skipping initialization.");
             return;
         }
-        if (!userRepository.existsByEmail("admin@ledgera.com")) {
+        if (!userRepository.existsByEmail("rakinmohammedrafeeq@gmail.com")) {
             User admin = User.builder()
                     .name("Admin")
-                    .email("admin@ledgera.com")
+                    .email("rakinmohammedrafeeq@gmail.com")
                     .password(passwordEncoder.encode("Admin@123"))
                     .role(Role.ADMIN)
                     .active(true)
                     .build();
 
             userRepository.save(admin);
-            logger.info("✅ Default admin user created: admin@ledgera.com");
+            logger.info("✅ Default admin user created: rakinmohammedrafeeq@gmail.com");
         } else {
             logger.info("ℹ️  Admin user already exists, skipping initialization.");
         }
