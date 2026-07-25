@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Receipt, Users, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
+import { LayoutDashboard, Receipt, Users, ChevronLeft, ChevronRight, Shield, Brain } from 'lucide-react'
 import { APP_LOGO_SRC } from '@/config/brandAssets'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -15,6 +15,7 @@ import { useState } from 'react'
 const mainNav = [
   { title: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
   { title: 'Records', href: '/app/records', icon: Receipt },
+  { title: 'AI Advisor', href: '/app/advisor', icon: Brain },
 ] as const
 
 const teamNav = [{ title: 'Members', href: '/app/members', icon: Users }] as const
@@ -42,9 +43,9 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-        <ScrollArea className="h-full" viewportClassName="scrollbar-none" scrollbarClassName="hidden">
-          <div className="flex min-h-full flex-col">
+      <div className="flex h-full min-h-screen flex-col bg-sidebar text-sidebar-foreground">
+        <ScrollArea className="h-full flex-1" viewportClassName="scrollbar-none" scrollbarClassName="hidden">
+          <div className="flex min-h-screen flex-col pb-6 sm:pb-8">
             {/* ── Logo & Toggle ────────────────────────────────── */}
             <div className="flex h-16 items-center px-4 gap-3 relative">
               <div className="flex items-center gap-2.5 min-w-0 overflow-hidden flex-1">
@@ -53,11 +54,12 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
                   Ledgera
                 </span>
               </div>
+              {/* Hide collapse button in mobile drawer, only show on desktop */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className={`h-7 w-7 flex-shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden pointer-events-none' : 'opacity-100'}`}
+                className={`h-7 w-7 flex-shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300 hidden md:block ${isCollapsed ? 'opacity-0 w-0 overflow-hidden pointer-events-none' : 'opacity-100'}`}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>

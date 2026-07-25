@@ -29,28 +29,36 @@ public class GeminiAiService {
 
     private static final Logger logger = LoggerFactory.getLogger(GeminiAiService.class);
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
+    private static final String GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
     
-    private final String apiKey;
-    private final String model;
+    private final String geminiApiKey;
+    private final String groqApiKey;
     private final ObjectMapper objectMapper;
     private final FinancialRecordRepository financialRecordRepository;
     private final CurrentUserService currentUserService;
+    private final AiModelFallbackService fallbackService;
 
-    public GeminiAiService(FinancialRecordRepository financialRecordRepository, CurrentUserService currentUserService) {
+    public GeminiAiService(
+            FinancialRecordRepository financialRecordRepository,
+            CurrentUserService currentUserService,
+            AiModelFallbackService fallbackService) {
         this.financialRecordRepository = financialRecordRepository;
         this.currentUserService = currentUserService;
+        this.fallbackService = fallbackService;
         this.objectMapper = new ObjectMapper();
         
         // Load from environment
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-        this.apiKey = dotenv.get("GEMINI_API_KEY");
-        this.model = dotenv.get("GEMINI_MODEL", "gemini-3.6-flash");
+        this.geminiApiKey = dotenv.get("GEMINI_API_KEY");
+        this.groqApiKey = dotenv.get("GROQ_API_KEY");
         
-        if (apiKey == null || apiKey.isBlank()) {
+        if (geminiApiKey == null || geminiApiKey.isBlank()) {
             logger.warn("GEMINI_API_KEY not configured. AI features will be disabled.");
-        } else if (!apiKey.startsWith("AIza")) {
+        } else if (!geminiApiKey.startsWith("AIza")) {
             logger.warn("GEMINI_API_KEY format looks invalid (should start with 'AIza'). AI features may not work.");
         }
+        
+        logger.info("Gemini AI Service initialized with fallback support");
     }
 
     /**
@@ -78,7 +86,7 @@ public class GeminiAiService {
     }
 
     /**
-     * Extract data from receipt image
+     * Extract data from receipt image (with automatic fallback)
      */
     public AiReceiptResponse processReceipt(byte[] imageData, String mimeType) {
         if (!isConfigured()) {
@@ -90,10 +98,15 @@ public class GeminiAiService {
 
         try {
             String prompt = buildReceiptPrompt();
-            String response = callGeminiApiWithImage(prompt, imageData, mimeType);
+            
+            // Use cross-provider fallback service for vision models
+            String response = fallbackService.executeWithVisionFallback((modelName, provider) -> {
+                return callAiApiWithImage(prompt, imageData, mimeType, modelName, provider);
+            });
+            
             return parseReceiptResponse(response);
         } catch (Exception e) {
-            logger.error("Error processing receipt", e);
+            logger.error("Error processing receipt after all fallbacks", e);
             return AiReceiptResponse.builder()
                     .success(false)
                     .error("Failed to process receipt: " + e.getMessage())
@@ -305,7 +318,11 @@ public class GeminiAiService {
     }
 
     private String callGeminiApi(String prompt) throws Exception {
-        String url = GEMINI_API_URL + model + ":generateContent?key=" + apiKey;
+        return callGeminiApi(prompt, fallbackService.getPrimaryTextModel().modelName);
+    }
+    
+    private String callGeminiApi(String prompt, String model) throws Exception {
+        String url = GEMINI_API_URL + model + ":generateContent?key=" + geminiApiKey;
         
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost post = new HttpPost(url);
@@ -333,7 +350,11 @@ public class GeminiAiService {
     }
 
     private String callGeminiApiWithImage(String prompt, byte[] imageData, String mimeType) throws Exception {
-        String url = GEMINI_API_URL + model + ":generateContent?key=" + apiKey;
+        return callGeminiApiWithImage(prompt, imageData, mimeType, fallbackService.getPrimaryVisionModel().modelName);
+    }
+    
+    private String callGeminiApiWithImage(String prompt, byte[] imageData, String mimeType, String model) throws Exception {
+        String url = GEMINI_API_URL + model + ":generateContent?key=" + geminiApiKey;
         
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost post = new HttpPost(url);
@@ -376,6 +397,87 @@ public class GeminiAiService {
         }
         
         throw new RuntimeException("Invalid Gemini API response");
+    }
+
+    /**
+     * Unified method to call AI API with image support across providers
+     */
+    private String callAiApiWithImage(String prompt, byte[] imageData, String mimeType, 
+                                     String modelName, AiModelFallbackService.ModelProvider provider) throws Exception {
+        return switch (provider) {
+            case GEMINI -> callGeminiApiWithImage(prompt, imageData, mimeType, modelName);
+            case GROQ -> callGroqApiWithImage(prompt, imageData, mimeType, modelName);
+        };
+    }
+
+    /**
+     * Call Groq API with vision support
+     */
+    private String callGroqApiWithImage(String prompt, byte[] imageData, String mimeType, String model) throws Exception {
+        if (groqApiKey == null || groqApiKey.isBlank()) {
+            throw new RuntimeException("GROQ_API_KEY not configured");
+        }
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost post = new HttpPost(GROQ_API_URL);
+            post.setHeader("Content-Type", "application/json");
+            post.setHeader("Authorization", "Bearer " + groqApiKey);
+            
+            // Groq uses OpenAI format for vision
+            String base64Image = Base64.getEncoder().encodeToString(imageData);
+            String imageUrl = "data:" + mimeType + ";base64," + base64Image;
+            
+            var requestBody = java.util.Map.of(
+                "model", model,
+                "messages", List.of(
+                    java.util.Map.of(
+                        "role", "user",
+                        "content", List.of(
+                            java.util.Map.of("type", "text", "text", prompt),
+                            java.util.Map.of("type", "image_url", 
+                                "image_url", java.util.Map.of("url", imageUrl))
+                        )
+                    )
+                ),
+                "temperature", 0.7,
+                "max_tokens", 1000
+            );
+            
+            String requestJson = objectMapper.writeValueAsString(requestBody);
+            post.setEntity(new StringEntity(requestJson));
+            
+            logger.debug("Sending vision request to Groq API with model: {}", model);
+            
+            try (CloseableHttpResponse response = httpClient.execute(post)) {
+                int statusCode = response.getCode();
+                String responseBody = EntityUtils.toString(response.getEntity());
+                
+                logger.debug("Groq API response status: {}", statusCode);
+                logger.debug("Groq API response body: {}", responseBody);
+                
+                if (statusCode != 200) {
+                    logger.error("Groq API error: Status {}, Body: {}", statusCode, responseBody);
+                    throw new RuntimeException("Groq API returned status " + statusCode + ": " + responseBody);
+                }
+                
+                return extractTextFromGroqResponse(responseBody);
+            }
+        }
+    }
+
+    /**
+     * Extract text from Groq API response (OpenAI format)
+     */
+    private String extractTextFromGroqResponse(String responseBody) throws Exception {
+        JsonNode root = objectMapper.readTree(responseBody);
+        JsonNode choices = root.path("choices");
+        
+        if (choices.isArray() && choices.size() > 0) {
+            JsonNode message = choices.get(0).path("message");
+            return message.path("content").asText();
+        }
+        
+        throw new RuntimeException("Invalid Groq API response");
     }
 
     private AiCategorizationResponse parseCategorizationResponse(String response) {
@@ -474,7 +576,7 @@ public class GeminiAiService {
     }
 
     private boolean isConfigured() {
-        return apiKey != null && !apiKey.isBlank();
+        return geminiApiKey != null && !geminiApiKey.isBlank();
     }
 
     // Inner classes for Gemini API requests

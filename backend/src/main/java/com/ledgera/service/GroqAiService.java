@@ -41,8 +41,8 @@ public class GroqAiService {
         // Load from environment
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
         this.apiKey = dotenv.get("GROQ_API_KEY");
-        // Using Llama 3.3 70B - great balance of speed and quality
-        this.model = dotenv.get("GROQ_MODEL", "llama-3.3-70b-versatile");
+        // Using Llama 3.1 8B - much faster, still very capable for chat
+        this.model = dotenv.get("GROQ_MODEL", "llama-3.1-8b-instant");
         
         if (apiKey == null || apiKey.isBlank()) {
             logger.warn("GROQ_API_KEY not configured. Text-based AI features will be disabled.");
@@ -64,7 +64,7 @@ public class GroqAiService {
 
         try {
             String prompt = buildCategorizationPrompt(request);
-            String response = callGroqApi(prompt);
+            String response = callGroqApi(prompt, true); // Force JSON for categorization
             return parseCategorizationResponse(response);
         } catch (Exception e) {
             logger.error("Error categorizing transaction with Groq", e);
@@ -118,7 +118,7 @@ public class GroqAiService {
             }
 
             String prompt = buildInsightsPrompt(recentRecords);
-            String response = callGroqApi(prompt);
+            String response = callGroqApi(prompt, true); // Force JSON for insights
             return parseInsightsResponse(response);
         } catch (Exception e) {
             logger.error("Error generating insights with Groq", e);
@@ -218,30 +218,49 @@ public class GroqAiService {
     }
 
     private String callGroqApi(String prompt) throws Exception {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        return callGroqApi(prompt, false);
+    }
+    
+    private String callGroqApi(String prompt, boolean forceJson) throws Exception {
+        // Configure timeout for HTTP client
+        org.apache.hc.client5.http.config.RequestConfig requestConfig = org.apache.hc.client5.http.config.RequestConfig.custom()
+                .setConnectTimeout(org.apache.hc.core5.util.Timeout.ofSeconds(10))
+                .setResponseTimeout(org.apache.hc.core5.util.Timeout.ofSeconds(30))
+                .build();
+        
+        try (CloseableHttpClient httpClient = HttpClients.custom()
+                .setDefaultRequestConfig(requestConfig)
+                .build()) {
             HttpPost post = new HttpPost(GROQ_API_URL);
             post.setHeader("Content-Type", "application/json");
             post.setHeader("Authorization", "Bearer " + apiKey);
             
             // Build Groq API request (OpenAI-compatible format)
-            Map<String, Object> requestBody = Map.of(
-                "model", model,
-                "messages", List.of(
-                    Map.of("role", "user", "content", prompt)
-                ),
-                "temperature", 0.3,  // Lower temperature for more consistent categorization
-                "max_tokens", 1000,
-                "response_format", Map.of("type", "json_object")  // Force JSON response
-            );
+            Map<String, Object> requestBody = new java.util.HashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("messages", List.of(
+                Map.of("role", "user", "content", prompt)
+            ));
+            requestBody.put("temperature", 0.7);  // Slightly higher for natural conversation
+            requestBody.put("max_tokens", 1000);
+            
+            // Only add JSON format for categorization/insights, not for chat
+            if (forceJson) {
+                requestBody.put("response_format", Map.of("type", "json_object"));
+            }
             
             String requestJson = objectMapper.writeValueAsString(requestBody);
             post.setEntity(new StringEntity(requestJson));
             
+            logger.debug("Sending request to Groq API with model: {}", model);
+            long startTime = System.currentTimeMillis();
+            
             try (CloseableHttpResponse response = httpClient.execute(post)) {
+                long elapsedTime = System.currentTimeMillis() - startTime;
                 int statusCode = response.getCode();
                 String responseBody = EntityUtils.toString(response.getEntity());
                 
-                logger.debug("Groq API response status: {}", statusCode);
+                logger.info("Groq API response received in {}ms, status: {}", elapsedTime, statusCode);
                 logger.debug("Groq API response body: {}", responseBody);
                 
                 if (statusCode != 200) {
@@ -335,6 +354,27 @@ public class GroqAiService {
             cleaned = cleaned.substring(0, cleaned.length() - 3);
         }
         return cleaned.trim();
+    }
+
+    /**
+     * Generate financial advisor response with RAG context
+     */
+    public String generateAdvisorResponse(String prompt) {
+        if (!isConfigured()) {
+            logger.error("Groq AI service not configured - missing GROQ_API_KEY");
+            return "AI service is not configured. Please set GROQ_API_KEY in environment.";
+        }
+
+        try {
+            logger.info("Calling Groq API for advisor response");
+            logger.debug("Prompt length: {} characters", prompt.length());
+            String response = callGroqApi(prompt);
+            logger.info("Successfully received advisor response from Groq API");
+            return response;
+        } catch (Exception e) {
+            logger.error("Error generating advisor response: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to generate advisor response: " + e.getMessage(), e);
+        }
     }
 
     private boolean isConfigured() {

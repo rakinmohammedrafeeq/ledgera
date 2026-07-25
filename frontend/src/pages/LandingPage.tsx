@@ -11,6 +11,7 @@ import {
   Sparkles,
   Image,
   Shield,
+  Brain,
 } from 'lucide-react'
 import { AppFooter } from '@/components/layout/AppFooter'
 import { InteractiveShowcase } from '@/components/landing/InteractiveShowcase'
@@ -26,33 +27,33 @@ export function LandingPage() {
   const features = [
     {
       icon: Bot,
-      title: 'AI-Powered Intelligence',
-      desc: 'Smart categorization, receipt OCR & personalized insights.',
+      title: 'AI-Powered',
+      desc: 'Smart categorization, receipt scanning, and personalized financial insights.',
     },
     {
-      icon: Image,
-      title: 'Receipt Scanner',
-      desc: 'Upload receipts, auto-extract data with Gemini Vision.',
+      icon: Brain,
+      title: 'Financial Advisor',
+      desc: 'Chat with AI for investment advice, portfolio tips, and wealth-building strategies.',
     },
     {
       icon: BarChart3,
       title: 'Team Workspaces',
-      desc: 'Multi-workspace collaboration with role-based access.',
+      desc: 'Collaborate with your team using shared workspaces and role-based access.',
     },
     {
       icon: Shield,
-      title: 'Enterprise Security',
-      desc: 'Google OAuth, JWT auth, rate limiting & admin controls.',
+      title: 'Secure & Fast',
+      desc: 'Google sign-in, encrypted data, and enterprise-grade security.',
     },
     {
       icon: TrendingUp,
       title: 'Real-time Analytics',
-      desc: 'Interactive dashboards with trends & category breakdowns.',
+      desc: 'Interactive dashboards with spending trends and category breakdowns.',
     },
     {
       icon: Sparkles,
       title: 'Smart Automation',
-      desc: 'AI suggests categories, types & generates financial insights.',
+      desc: 'Let AI handle the boring stuff while you focus on your finances.',
     },
   ]
 
@@ -110,8 +111,8 @@ export function LandingPage() {
               </h1>
 
               <p className="max-w-lg text-base leading-relaxed text-white/45">
-                Smart transaction categorization, receipt OCR, AI insights, and collaborative workspaces. 
-                Powered by Google Gemini Vision and Groq AI. Everything you need, nothing you don't.
+                Smart categorization, receipt scanning, AI financial advisor, and team workspaces. 
+                Track expenses, get insights, and collaborate seamlessly.
               </p>
 
               <div className="flex flex-wrap items-center gap-3">

@@ -1,6 +1,5 @@
-import { Menu, Search, Moon, Sun, Monitor, Check, User as UserIcon, Lock } from 'lucide-react'
+import { Menu, Moon, Sun, Monitor, Check, User as UserIcon, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,29 +41,11 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <span className="sr-only">Toggle menu</span>
       </Button>
 
-      {/* Search */}
-      <div className="hidden flex-1 md:flex">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-          <Input
-            type="search"
-            placeholder="Search…"
-            className="h-9 w-full rounded-lg border-border/50 bg-muted/40 pl-9 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/30"
-          />
-        </div>
-      </div>
-
-      {/* Mobile spacer */}
-      <div className="flex-1 md:hidden" />
+      {/* Spacer */}
+      <div className="flex-1" />
 
       {/* Right Side */}
       <div className="flex items-center gap-1">
-        {/* Mobile Search */}
-        <Button variant="ghost" size="icon" className="h-9 w-9 md:hidden">
-          <Search className="h-4 w-4" />
-          <span className="sr-only">Search</span>
-        </Button>
-
         {/* Theme Toggle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

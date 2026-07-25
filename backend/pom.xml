@@ -15,7 +15,7 @@
     <artifactId>ledgera-backend</artifactId>
     <version>1.0.0</version>
     <name>Ledgera Backend</name>
-    <description>AI-Powered Finance Tracking Platform - Backend API with Groq AI, Gemini Vision, JWT Auth, and Multi-Workspace Collaboration</description>
+    <description>AI-Powered Finance Tracking Platform - Backend API with Groq AI (Llama 3.3 70B), Gemini 3.6 Flash, pgvector RAG, JWT Auth, OAuth 2.0, and Multi-Workspace Collaboration</description>
 
     <properties>
         <java.version>17</java.version>
@@ -51,7 +51,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -117,6 +117,35 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
+        <!-- Deep Java Library (DJL) for Local Embeddings - FREE -->
+        <dependency>
+            <groupId>ai.djl</groupId>
+            <artifactId>api</artifactId>
+            <version>0.28.0</version>
+        </dependency>
+        <dependency>
+            <groupId>ai.djl.huggingface</groupId>
+            <artifactId>tokenizers</artifactId>
+            <version>0.28.0</version>
+        </dependency>
+        <dependency>
+            <groupId>ai.djl.pytorch</groupId>
+            <artifactId>pytorch-engine</artifactId>
+            <version>0.28.0</version>
+        </dependency>
+        <dependency>
+            <groupId>ai.djl.pytorch</groupId>
+            <artifactId>pytorch-model-zoo</artifactId>
+            <version>0.28.0</version>
+        </dependency>
+
+        <!-- PGVector for PostgreSQL Vector Support -->
+        <dependency>
+            <groupId>com.pgvector</groupId>
+            <artifactId>pgvector</artifactId>
+            <version>0.1.4</version>
         </dependency>
 
         <!-- Lombok -->

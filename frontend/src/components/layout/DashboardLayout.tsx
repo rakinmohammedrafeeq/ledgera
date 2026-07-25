@@ -22,7 +22,7 @@ export function DashboardLayout() {
 
       {/* Mobile Sidebar */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" className="w-64 p-0 h-full">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <AppSidebar onClose={() => setMobileOpen(false)} />
         </SheetContent>
@@ -31,7 +31,7 @@ export function DashboardLayout() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col min-w-0">
         <Navbar onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 overflow-auto bg-background p-4 md:p-6">
+        <main className="flex-1 overflow-auto bg-background p-3 sm:p-4 md:p-6">
           <Outlet />
         </main>
       </div>

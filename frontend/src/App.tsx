@@ -16,6 +16,7 @@ import { OAuth2CallbackPage } from '@/pages/auth/OAuth2CallbackPage'
 import { TermsAndPrivacyPage } from '@/pages/auth/TermsAndPrivacyPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { RecordsPage } from '@/pages/records/RecordsPage'
+import { AdvisorPage } from '@/pages/advisor/AdvisorPage'
 import { WorkspaceMembersPage } from '@/pages/workspace/WorkspaceMembersPage'
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
 
@@ -62,6 +63,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="records" element={<RecordsPage />} />
+        <Route path="advisor" element={<AdvisorPage />} />
         <Route
           path="members"
           element={
@@ -82,6 +84,7 @@ function AppRoutes() {
 
       <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
       <Route path="/records" element={<Navigate to="/app/records" replace />} />
+      <Route path="/advisor" element={<Navigate to="/app/advisor" replace />} />
       <Route path="/members" element={<Navigate to="/app/members" replace />} />
       <Route path="/team" element={<Navigate to="/app/members" replace />} />
 

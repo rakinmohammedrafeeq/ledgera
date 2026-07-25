@@ -78,4 +78,9 @@ public interface FinancialRecordRepository extends JpaRepository<FinancialRecord
     // For AI insights generation
     @EntityGraph(attributePaths = "user")
     List<FinancialRecord> findTop50ByWorkspaceIdOrderByDateDesc(Long workspaceId);
+
+    // For RAG vector search indexing
+    List<FinancialRecord> findByWorkspaceIdOrderByDateDesc(Long workspaceId);
+    
+    List<FinancialRecord> findByUserIdOrderByDateDesc(Long userId);
 }

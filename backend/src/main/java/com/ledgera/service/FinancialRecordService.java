@@ -12,6 +12,8 @@ import com.ledgera.exception.ResourceNotFoundException;
 import com.ledgera.repository.FinancialRecordRepository;
 import com.ledgera.repository.FinancialRecordSpecification;
 import com.ledgera.repository.WorkspaceMemberRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,16 +27,21 @@ import java.time.LocalDate;
 @Service
 public class FinancialRecordService {
 
+    private static final Logger logger = LoggerFactory.getLogger(FinancialRecordService.class);
+
     private final FinancialRecordRepository recordRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserService currentUserService;
+    private final VectorSearchService vectorSearchService;
 
     public FinancialRecordService(FinancialRecordRepository recordRepository,
                                   WorkspaceMemberRepository workspaceMemberRepository,
-                                  CurrentUserService currentUserService) {
+                                  CurrentUserService currentUserService,
+                                  VectorSearchService vectorSearchService) {
         this.recordRepository = recordRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserService = currentUserService;
+        this.vectorSearchService = vectorSearchService;
     }
 
     @Transactional
@@ -66,9 +73,23 @@ public class FinancialRecordService {
                 .workspace(workspace)
                 .build();
 
-        return toResponse(recordRepository.save(record));
+        FinancialRecord savedRecord = recordRepository.save(record);
+        
+        // Return immediately - indexing will happen asynchronously or in a separate process
+        // Don't let indexing failures affect record creation
+        FinancialRecordResponse response = toResponse(savedRecord);
+        
+        // Index the record for vector search in a separate transaction (after commit)
+        try {
+            vectorSearchService.indexFinancialRecord(savedRecord, currentUser.getId(), workspace.getId());
+        } catch (Exception e) {
+            // Log but don't fail the request if indexing fails
+            logger.error("Failed to index financial record for vector search: {}", e.getMessage(), e);
+        }
+        
+        return response;
     }
-
+    
     @Transactional
     public FinancialRecordResponse updateRecord(Long id, FinancialRecordRequest request) {
         FinancialRecord record = recordRepository.findById(id)
@@ -98,7 +119,10 @@ public class FinancialRecordService {
         record.setDescription(request.getDescription());
         // Keep the original owner, don't change it
 
-        return toResponse(recordRepository.save(record));
+        FinancialRecord savedRecord = recordRepository.save(record);
+        
+        // Return immediately without waiting for indexing
+        return toResponse(savedRecord);
     }
 
     @Transactional

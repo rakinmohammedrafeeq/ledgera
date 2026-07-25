@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './styles/mobile.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -142,6 +143,55 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* ── Mobile Optimizations ────────────────────────────────────────── */
+  /* Prevent iOS zoom on input focus */
+  @media (max-width: 768px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="search"],
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+  
+  /* Better touch targets for mobile (44x44px minimum) */
+  @media (max-width: 768px) {
+    button,
+    a,
+    [role="button"],
+    input[type="button"],
+    input[type="submit"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+  
+  /* Smooth scrolling on mobile */
+  @supports (-webkit-overflow-scrolling: touch) {
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+  
+  /* Prevent pull-to-refresh on overscroll */
+  html {
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Better tap highlighting */
+  * {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  .dark * {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.05);
   }
   
   /* ── Cursor styles for clickable elements ────────────────────────── */
