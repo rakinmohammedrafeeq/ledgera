@@ -107,6 +107,11 @@ combined.log
 .env
 .env.*
 !.env.example
+!.env.template
+.env.backup
+.env.save
+.envrc
+.envrc.*
 
 # ===============================
 # JAVA / SPRING BOOT

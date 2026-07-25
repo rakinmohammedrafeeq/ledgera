@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-@Profile("!prod")
 @Component
 public class DataInitializer implements CommandLineRunner {
 
@@ -46,7 +45,16 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(admin);
             logger.info("✅ Default admin user created: rakinmohammedrafeeq@gmail.com");
         } else {
-            logger.info("ℹ️  Admin user already exists, skipping initialization.");
+            // User exists - check if they're ADMIN, if not, upgrade them
+            userRepository.findByEmail("rakinmohammedrafeeq@gmail.com").ifPresent(user -> {
+                if (user.getRole() != Role.ADMIN) {
+                    user.setRole(Role.ADMIN);
+                    userRepository.save(user);
+                    logger.info("✅ Upgraded existing user to ADMIN: {}", user.getEmail());
+                } else {
+                    logger.info("ℹ️  Admin user already exists with ADMIN role.");
+                }
+            });
         }
     }
 }

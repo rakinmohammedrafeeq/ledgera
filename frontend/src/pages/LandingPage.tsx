@@ -4,9 +4,13 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   ArrowRight,
   BarChart3,
+  Bot,
   CreditCard,
   Lock,
   TrendingUp,
+  Sparkles,
+  Image,
+  Shield,
 } from 'lucide-react'
 import { AppFooter } from '@/components/layout/AppFooter'
 import { InteractiveShowcase } from '@/components/landing/InteractiveShowcase'
@@ -21,24 +25,34 @@ export function LandingPage() {
 
   const features = [
     {
-      icon: CreditCard,
-      title: 'Track everything',
-      desc: 'Income and expenses in one place.',
+      icon: Bot,
+      title: 'AI-Powered Intelligence',
+      desc: 'Smart categorization, receipt OCR & personalized insights.',
     },
     {
-      icon: TrendingUp,
-      title: 'Real-time insights',
-      desc: 'Cash flow, categories, and trends.',
+      icon: Image,
+      title: 'Receipt Scanner',
+      desc: 'Upload receipts, auto-extract data with Gemini Vision.',
     },
     {
       icon: BarChart3,
-      title: 'Team workspaces',
-      desc: 'Collaborate with granular permissions.',
+      title: 'Team Workspaces',
+      desc: 'Multi-workspace collaboration with role-based access.',
     },
     {
-      icon: Lock,
-      title: 'Secure by default',
-      desc: 'JWT authentication. Your data, your control.',
+      icon: Shield,
+      title: 'Enterprise Security',
+      desc: 'Google OAuth, JWT auth, rate limiting & admin controls.',
+    },
+    {
+      icon: TrendingUp,
+      title: 'Real-time Analytics',
+      desc: 'Interactive dashboards with trends & category breakdowns.',
+    },
+    {
+      icon: Sparkles,
+      title: 'Smart Automation',
+      desc: 'AI suggests categories, types & generates financial insights.',
     },
   ]
 
@@ -86,18 +100,18 @@ export function LandingPage() {
           </header>
 
           {/* ── Hero ─────────────────────────────────────────── */}
-          <main className="mt-14 grid gap-12 lg:mt-18 lg:grid-cols-12 lg:items-center" style={{ animation: 'slide-up 600ms ease-out both' }}>
+          <main className="mt-24 grid gap-12 lg:mt-32 lg:grid-cols-12 lg:items-center" style={{ animation: 'slide-up 600ms ease-out both' }}>
             <div className="space-y-7 lg:col-span-7">
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-[3.25rem] lg:leading-[1.15]">
-                Finance tracking,
+                AI-powered finance tracking,
                 <span className="block bg-gradient-to-r from-primary/80 via-primary to-primary/80 bg-clip-text text-transparent">
-                  built for teams.
+                  built for modern teams.
                 </span>
               </h1>
 
               <p className="max-w-lg text-base leading-relaxed text-white/45">
-                Track records, visualize cash flow, and collaborate in shared workspaces. 
-                Everything you need, nothing you don't.
+                Smart transaction categorization, receipt OCR, AI insights, and collaborative workspaces. 
+                Powered by Google Gemini Vision and Groq AI. Everything you need, nothing you don't.
               </p>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -124,13 +138,13 @@ export function LandingPage() {
           </main>
 
           {/* ── Features ─────────────────────────────────────── */}
-          <section className="mt-16 lg:mt-24">
+          <section className="mt-32 lg:mt-40">
             <div className="mb-6">
-              <h2 className="text-xl font-semibold">Everything in one place</h2>
-              <p className="mt-1 text-sm text-white/40">Track, analyze, collaborate.</p>
+              <h2 className="text-xl font-semibold">AI-Powered Features & Enterprise Security</h2>
+              <p className="mt-1 text-sm text-white/40">Track, analyze, collaborate with intelligent automation.</p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {features.map(({ icon: Icon, title, desc }) => (
                 <div
                   key={title}

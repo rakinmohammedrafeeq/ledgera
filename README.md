@@ -12,16 +12,36 @@
   
 </div>
 
-# Ledgera – Full-Stack Finance Tracking System
+# Ledgera – AI-Powered Full-Stack Finance Tracking Platform
 
-Ledgera is a full-stack collaborative finance platform built for modern teams and personal workflows. It combines workspace-based financial management, shared records, analytics dashboards, and role-based collaboration into a streamlined premium SaaS experience.
+Ledgera is a modern, AI-powered collaborative finance platform built for teams and personal workflows. It combines intelligent automation, workspace-based financial management, advanced analytics, and role-based collaboration into a premium SaaS experience.
+
+**Key Highlights:**
+- 🤖 **Hybrid AI Architecture** - Groq AI for categorization & insights, Gemini Vision for receipt OCR
+- 🔐 **Enterprise Security** - Google OAuth 2.0, JWT authentication, rate limiting, admin controls
+- 👥 **Multi-Workspace Collaboration** - Role-based access (Owner/Editor/Viewer)
+- 📊 **Real-Time Analytics** - Interactive dashboards with trends & category breakdowns
+- ☁️ **Cloud Storage** - Cloudinary CDN for receipt images
+- 🎨 **Modern UX** - Responsive design, system theme detection, glassmorphic UI
 
 ---
 
 ## Features
 
+### 🤖 AI-Powered Features (Hybrid Architecture)
+- **Smart Transaction Categorization** - AI automatically suggests categories and transaction types based on descriptions (powered by Groq AI)
+- **Receipt OCR & Auto-Entry** - Upload receipt photos and extract amount, merchant, date, and category automatically (powered by Gemini Vision)
+- **Cloudinary Cloud Storage** - Scalable receipt image storage with CDN delivery and automatic optimization
+- **AI Financial Insights** - Get personalized spending analysis, trends, and budget recommendations powered by Groq AI (Llama 3.3 70B)
+- **Hybrid Provider Strategy** - Optimal quota management using Groq for text tasks and Gemini for vision tasks
+- Real-time AI suggestions with confidence scoring
+- Multimodal AI processing for text and image analysis
+- Sub-second response times for categorization
+
 ### Authentication & Security
 - JWT-based authentication and authorization
+- **Google OAuth 2.0 social login** (Continue with Google)
+- Dual authentication strategy (Email+Password OR Google Sign-In)
 - OTP-based password reset flow with email integration (Resend API)
 - Rate limiting for password reset requests (3 per 15 minutes)
 - Multi-level role-based access control (Admin/Analyst/Viewer)
@@ -80,19 +100,22 @@ Ledgera is a full-stack collaborative finance platform built for modern teams an
 
 ## Why Ledgera?
 
-Ledgera demonstrates production-grade full-stack development practices:
+Ledgera demonstrates production-grade full-stack development with cutting-edge AI integration:
 
+- **Hybrid AI Architecture** — Optimal quota management using Groq (text) + Gemini Vision (OCR)
 - **Enterprise Architecture** — Layered backend design with clear separation of concerns
-- **Multi-Tenancy** — Workspace-based architecture for team collaboration
-- **Security First** — JWT authentication, role-based access control, workspace permissions, rate limiting
-- **Modern Stack** — Spring Boot 3, React 18, TypeScript, PostgreSQL
+- **Multi-Tenancy** — Workspace-based architecture for seamless team collaboration
+- **Security First** — Google OAuth 2.0, JWT authentication, RBAC, workspace permissions, rate limiting
+- **Modern Stack** — Spring Boot 3, React 18, TypeScript, PostgreSQL, Cloudinary
+- **AI-Powered** — Smart categorization (0.5s response), receipt OCR, financial insights
 - **Email Integration** — Professional OTP-based password reset flow with Resend API
 - **Scalable Design** — RESTful API, database migrations, comprehensive error handling
 - **Admin Platform** — Dedicated admin panel for platform-wide user management
-- **Modern UX** — System theme detection, responsive design, accessible components
-- **Developer Experience** — Hot reload, TypeScript, ESLint, detailed logging
+- **Modern UX** — System theme detection, responsive design, accessible components, glassmorphic UI
+- **Cloud-Native** — Cloudinary CDN, serverless PostgreSQL (Neon), Docker deployment
+- **Developer Experience** — Hot reload, TypeScript, ESLint, detailed logging, API documentation
 
-Built to reflect production-level design practices used in modern SaaS applications.
+Built to reflect production-level design practices used in modern AI-powered SaaS applications.
 
 ---
 
@@ -101,11 +124,19 @@ Built to reflect production-level design practices used in modern SaaS applicati
 ### Backend
 - **Language:** Java 17+
 - **Framework:** Spring Boot 3.2.x
-- **Security:** Spring Security with JWT
+- **AI Integration:** 
+  - **Groq AI** - Text categorization & insights (Llama 3.3 70B Versatile)
+  - **Gemini Vision** - Receipt OCR & image understanding (Gemini 2.0 Flash)
+- **Cloud Storage:** Cloudinary (Image CDN & Storage)
+- **Authentication:** 
+  - JWT (JSON Web Tokens)
+  - Google OAuth 2.0 (Social Login)
+- **Security:** Spring Security with JWT + OAuth2
 - **Database:** Spring Data JPA, Flyway migrations
 - **Email:** Resend API (v3.0.0)
 - **Rate Limiting:** Bucket4j (v8.7.0)
 - **Build Tool:** Maven
+- **HTTP Client:** Apache HttpClient 5
 
 ### Frontend
 - **Framework:** React 18 with TypeScript
@@ -283,6 +314,24 @@ JWT_EXPIRATION=86400000
 RESEND_API_KEY=your_resend_api_key
 RESEND_FROM_EMAIL=your-verified-email@yourdomain.com
 RESEND_FROM_NAME=Ledgera
+
+# AI Configuration (Hybrid Provider Setup)
+# Gemini Vision - For receipt OCR/image understanding (limited quota, excellent for vision)
+GEMINI_API_KEY=your_gemini_api_key_from_ai_google_dev
+GEMINI_MODEL=gemini-3.6-flash
+
+# Groq - For categorization & insights (generous free quota, fast text generation)
+GROQ_API_KEY=your_groq_api_key_from_console_groq_com
+GROQ_MODEL=llama-3.3-70b-versatile
+
+AI_MAX_CATEGORIZATION_REQUESTS_PER_DAY=100
+AI_MAX_RECEIPT_UPLOADS_PER_DAY=20
+
+# Cloudinary Configuration (Image Storage)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
 
 # Application Configuration
 APP_BASE_URL=http://localhost:5173
@@ -473,6 +522,12 @@ npm run preview
 ### Dashboard (`/api/dashboard`)
 - `GET /api/dashboard` — Get dashboard analytics (workspace-scoped)
 
+### AI Features (`/api/ai`)
+- `POST /api/ai/categorize` — AI-powered transaction categorization
+- `POST /api/ai/receipt` — Upload receipt for OCR and auto-extraction
+- `GET /api/ai/insights` — Get AI-generated financial insights
+- `GET /api/ai/health` — Check AI service availability
+
 ### Health Check
 - `GET /healthz` — Health check endpoint (unauthenticated)
 
@@ -510,6 +565,59 @@ npm run preview
 2. **Verify your domain** or use `onboarding@resend.dev` for testing
 3. **Generate API key** and add to backend environment variables
 4. **Configure email templates** in `EmailService.java`
+
+### AI Configuration (Hybrid Provider Setup)
+
+Ledgera uses a **hybrid AI provider strategy** for optimal quota management:
+
+#### Groq (Categorization & Insights)
+
+1. **Sign up for free** at [https://console.groq.com](https://console.groq.com)
+2. **Generate API key** from dashboard
+3. **Add to backend `.env`**:
+   ```env
+   GROQ_API_KEY=your_groq_api_key
+   GROQ_MODEL=llama-3.3-70b-versatile
+   ```
+4. **Free tier includes**: Very generous rate limits, minimal daily restrictions
+5. **Features enabled**: Transaction categorization, Financial insights
+
+#### Gemini Vision (Receipt OCR)
+
+1. **Get your free API key** at [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. **Sign in** with your Google account
+3. **Click "Create API Key"** and select your project (or create new one)
+4. **Copy the API key** (starts with `AIza...` or `AQ.`)
+5. **Add to backend `.env`**:
+   ```env
+   GEMINI_API_KEY=your_actual_api_key_here
+   GEMINI_MODEL=gemini-3.6-flash
+   ```
+6. **Free tier includes**: 15 requests/minute, ~20 requests/day
+7. **Features enabled**: Receipt OCR & image understanding
+
+**Why hybrid?**
+- Groq handles high-frequency text tasks (categorization, insights) with generous quota
+- Gemini Vision handles occasional receipt uploads (best-in-class OCR)
+- No quota exhaustion during demos or typical usage
+
+📚 **See [backend/AI_PROVIDER_ARCHITECTURE.md](backend/AI_PROVIDER_ARCHITECTURE.md) for detailed architecture documentation**
+
+### Cloudinary Configuration (Image Storage)
+
+1. **Sign up for free** at [https://cloudinary.com/users/register_free](https://cloudinary.com/users/register_free)
+2. **Get your credentials** from the dashboard:
+   - Cloud Name
+   - API Key
+   - API Secret
+3. **Add to backend `.env`**:
+   ```env
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
+4. **Free tier includes**: 25GB storage, 25GB bandwidth/month, unlimited transformations
+5. **Features enabled**: Receipt image storage, CDN delivery, automatic optimization
 
 ### Database Setup (Neon)
 

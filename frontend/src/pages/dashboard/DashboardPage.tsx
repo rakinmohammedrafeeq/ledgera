@@ -31,6 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatsCard } from '@/components/dashboard/StatsCard'
+import { AiInsights } from '@/components/dashboard/AiInsights'
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
@@ -119,7 +120,7 @@ export function DashboardPage() {
             </p>
             {canCreate && (
               <Button asChild className="gap-2 mt-6">
-                <Link to="/app/records">
+                <Link to="/app/records?add=true">
                   <Plus className="h-4 w-4" />
                   Add record
                 </Link>
@@ -141,7 +142,7 @@ export function DashboardPage() {
         <div className="flex flex-wrap gap-2">
           {canCreate ? (
             <Button asChild className="gap-2">
-              <Link to="/app/records">
+              <Link to="/app/records?add=true">
                 <Plus className="h-4 w-4" />
                 Add record
               </Link>
@@ -257,6 +258,9 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Insights Section */}
+      <AiInsights />
 
       <Card className="border-border/60 bg-card/60 backdrop-blur-sm">
         <CardHeader className="flex flex-row items-center justify-between">

@@ -89,8 +89,8 @@ export const AppFooter = () => {
             )}
 
             <p className="text-[13px] leading-relaxed text-white/40">
-              Finance tracking for teams.<br />
-              Clean, collaborative, secure.
+              AI-powered finance tracking for teams.<br />
+              Clean, collaborative, intelligent, secure.
             </p>
 
             <p className="text-xs text-white/25">

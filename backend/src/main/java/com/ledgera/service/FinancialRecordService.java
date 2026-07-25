@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
@@ -36,6 +37,7 @@ public class FinancialRecordService {
         this.currentUserService = currentUserService;
     }
 
+    @Transactional
     public FinancialRecordResponse createRecord(FinancialRecordRequest request) {
         User currentUser = currentUserService.requireCurrentUser();
 
@@ -67,6 +69,7 @@ public class FinancialRecordService {
         return toResponse(recordRepository.save(record));
     }
 
+    @Transactional
     public FinancialRecordResponse updateRecord(Long id, FinancialRecordRequest request) {
         FinancialRecord record = recordRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Record not found with id: " + id));
@@ -98,6 +101,7 @@ public class FinancialRecordService {
         return toResponse(recordRepository.save(record));
     }
 
+    @Transactional
     public void deleteRecord(Long id) {
         FinancialRecord record = recordRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Record not found with id: " + id));
@@ -122,6 +126,7 @@ public class FinancialRecordService {
         recordRepository.delete(record);
     }
 
+    @Transactional(readOnly = true)
     public Page<FinancialRecordResponse> getAllRecords(
             LocalDate startDate, LocalDate endDate,
             String category, TransactionType type,
@@ -153,6 +158,7 @@ public class FinancialRecordService {
         return recordRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public FinancialRecordResponse getRecordById(Long id) {
         FinancialRecord record = recordRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Record not found with id: " + id));

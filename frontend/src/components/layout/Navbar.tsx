@@ -13,7 +13,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getInitials } from '@/lib/utils'
-import { getRoleLabel } from '@/lib/roleUtils'
 import { cn } from '@/lib/utils'
 import { LogoutConfirm } from '@/components/auth/LogoutConfirm'
 import { ChangeNameDialog } from '@/components/user/ChangeNameDialog'
@@ -133,7 +132,9 @@ export function Navbar({ onMenuClick }: NavbarProps) {
               <div className="flex flex-col space-y-1 min-w-0 overflow-hidden">
                 <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                <p className="text-[11px] font-medium text-primary/80 truncate">{getRoleLabel(user?.role)}</p>
+                {user?.role === 'ADMIN' && (
+                  <p className="text-[11px] font-medium text-primary/80 truncate">Platform Administrator</p>
+                )}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

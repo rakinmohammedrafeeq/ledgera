@@ -1,16 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Receipt, Users, LogOut, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
+import { LayoutDashboard, Receipt, Users, ChevronLeft, ChevronRight, Shield } from 'lucide-react'
 import { APP_LOGO_SRC } from '@/config/brandAssets'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSidebar } from '@/contexts/SidebarContext'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { getInitials } from '@/lib/utils'
-import { LogoutConfirm } from '@/components/auth/LogoutConfirm'
 import { WorkspaceSwitcher } from '@/components/workspace/WorkspaceSwitcher'
 import { CreateWorkspaceModal } from '@/components/workspace/CreateWorkspaceModal'
 import { useState } from 'react'
@@ -76,7 +73,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
             <Separator className="bg-sidebar-border" />
 
             {/* ── Navigation ───────────────────────────────────── */}
-            <div className="px-3 py-5">
+            <div className="px-3 py-5 flex-1">
               <div className="space-y-6">
                 <div className="space-y-1">
                   {!isCollapsed && (
@@ -234,93 +231,6 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
                     </nav>
                   </div>
                 ) : null}
-              </div>
-            </div>
-
-            {/* ── User card ────────────────────────────────────── */}
-            <div className="mt-auto">
-              <Separator className="bg-sidebar-border" />
-
-              <div className="p-4">
-                {isCollapsed ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex justify-center">
-                        <Avatar className="h-9 w-9 flex-shrink-0">
-                          <AvatarFallback className="bg-primary/15 text-primary text-sm font-semibold">
-                            {user?.name ? getInitials(user.name) : 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      <div className="text-left">
-                        <p className="font-medium">{user?.name || 'User'}</p>
-                        <p className="text-xs text-muted-foreground">{user?.email}</p>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <div className="flex items-start gap-3 min-w-0 overflow-hidden pr-2">
-                    <Avatar className="h-9 w-9 flex-shrink-0 mt-0.5">
-                      <AvatarFallback className="bg-primary/15 text-primary text-sm font-semibold">
-                        {user?.name ? getInitials(user.name) : 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <p className="text-sm font-medium leading-snug break-words">
-                        {user?.name || 'User'}
-                      </p>
-                      <p className="text-xs text-sidebar-foreground/45 leading-snug break-all">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-3">
-                  <LogoutConfirm
-                    onLoggedOut={onClose}
-                    trigger={
-                      isCollapsed ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={cn(
-                                'w-full h-9 rounded-lg',
-                                'text-sidebar-foreground/50',
-                                'transition-all duration-150',
-                                'hover:bg-red-500/10 hover:text-red-400',
-                              )}
-                            >
-                              <LogOut className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">Sign out</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          className={cn(
-                            'w-full justify-start gap-2 rounded-lg px-3 py-2',
-                            'text-[13px] font-medium',
-                            'text-sidebar-foreground/50',
-                            'transition-all duration-150',
-                            'hover:bg-red-500/10 hover:text-red-400',
-                          )}
-                        >
-                          <LogOut className="h-4 w-4 flex-shrink-0" />
-                          <span>Sign out</span>
-                        </Button>
-                      )
-                    }
-                    title="Sign out?"
-                    description="Are you sure you want to sign out?"
-                    confirmText="Sign out"
-                  />
-                </div>
               </div>
             </div>
           </div>

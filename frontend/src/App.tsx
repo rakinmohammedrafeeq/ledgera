@@ -12,6 +12,8 @@ import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { ForgotPasswordOtpPage } from '@/pages/auth/ForgotPasswordOtpPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
+import { OAuth2CallbackPage } from '@/pages/auth/OAuth2CallbackPage'
+import { TermsAndPrivacyPage } from '@/pages/auth/TermsAndPrivacyPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { RecordsPage } from '@/pages/records/RecordsPage'
 import { WorkspaceMembersPage } from '@/pages/workspace/WorkspaceMembersPage'
@@ -42,6 +44,12 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordOtpPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
+
+      {/* OAuth2 Callback - No layout needed */}
+      <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
+      
+      {/* Terms and Privacy - No layout needed */}
+      <Route path="/terms-and-privacy" element={<TermsAndPrivacyPage />} />
 
       <Route
         path="/app"

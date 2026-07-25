@@ -1,7 +1,7 @@
 {
-  "name": "Ledgera — Modern Finance Workspace",
+  "name": "Ledgera — AI-Powered Finance Tracking Platform",
   "short_name": "Ledgera",
-  "description": "Track expenses, manage records, and oversee your team — all in one workspace.",
+  "description": "AI-powered finance tracking with smart categorization, receipt OCR, and collaborative workspaces. Track expenses, analyze spending, and collaborate with your team.",
   "icons": [
     {
       "src": "/icon.png",

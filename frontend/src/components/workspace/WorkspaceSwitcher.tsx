@@ -107,7 +107,13 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ onCreateCl
               {currentWorkspace?.name || 'Select Workspace'}
             </span>
             <span className="text-xs text-sidebar-foreground/60 whitespace-nowrap mt-0.5">
-              {currentWorkspace?.memberCount || 0} {currentWorkspace?.memberCount === 1 ? 'member' : 'members'}
+              {currentWorkspace ? (
+                <>
+                  {currentWorkspace.userPermission === 'OWNER' ? 'Owner' : currentWorkspace.userPermission === 'EDITOR' ? 'Editor' : 'Viewer'} · {currentWorkspace.memberCount} {currentWorkspace.memberCount === 1 ? 'member' : 'members'}
+                </>
+              ) : (
+                'No workspace selected'
+              )}
             </span>
           </div>
         </button>
@@ -185,26 +191,14 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ onCreateCl
                   onClick={() => handleSwitch(workspace.id)}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors"
                 >
-                  {/* Gold accent line */}
-                  <div className={`w-0.5 h-8 rounded-full flex-shrink-0 ${
-                    currentWorkspace?.id === workspace.id 
-                      ? 'bg-gradient-to-b from-primary via-primary to-primary/60' 
-                      : 'bg-muted'
-                  }`} />
-                  
-                  {/* Workspace info */}
-                  <div className="flex flex-col items-start min-w-0 flex-1">
-                    <span className="text-sm font-medium text-foreground break-words w-full leading-tight">
-                      {workspace.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap mt-0.5">
-                      {workspace.memberCount} {workspace.memberCount === 1 ? 'member' : 'members'} · {workspace.userPermission === 'OWNER' ? 'Owner' : workspace.userPermission === 'EDITOR' ? 'Editor' : 'Viewer'}
-                    </span>
-                  </div>
-                  
                   {currentWorkspace?.id === workspace.id && (
                     <Check className="w-4 h-4 text-primary flex-shrink-0" />
                   )}
+                  
+                  {/* Workspace name */}
+                  <span className="text-sm font-medium text-foreground break-words flex-1 text-left">
+                    {workspace.name}
+                  </span>
                 </button>
               ))}
             </div>

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Pencil, Plus, Trash2, Camera } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useWorkspace } from '@/contexts/WorkspaceContext'
 import {
@@ -27,6 +27,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -60,6 +61,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { AiCategorySuggestion } from '@/components/records/AiCategorySuggestion'
+import { ReceiptUpload } from '@/components/records/ReceiptUpload'
 
 const INCOME_CATEGORIES = [
   'Salary',
@@ -116,7 +119,6 @@ const recordSchema = z.object({
 type RecordForm = z.infer<typeof recordSchema>
 
 export function RecordsPage() {
-  const { user } = useAuth()
   const { currentWorkspace } = useWorkspace()
   
   // Check workspace permission instead of platform role
@@ -133,6 +135,17 @@ export function RecordsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<FinancialRecordResponse | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [showReceiptUpload, setShowReceiptUpload] = useState(false)
+
+  // Auto-open modal if navigating from dashboard with ?add=true
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('add') === 'true' && canCreate) {
+      openNew()
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [canCreate])
 
   const sortBy = sort.split(':')[0] as 'date' | 'amount'
   const direction = sort.split(':')[1] as 'asc' | 'desc'
@@ -160,36 +173,42 @@ export function RecordsPage() {
   const form = useForm<RecordForm>({
     resolver: zodResolver(recordSchema),
     defaultValues: {
-      type: 'EXPENSE',
+      type: '' as any, // Start empty to show placeholder
       category: '',
       customCategory: '',
-      date: new Date().toISOString().slice(0, 10),
+      date: '', // Start empty
       description: '',
-      amount: 0,
+      amount: '' as any, // Start empty instead of 0
     },
   })
 
   const selectedType = form.watch('type')
   const selectedCategory = form.watch('category')
   const isOtherCategory = selectedCategory === 'Other'
+  const watchedDescription = form.watch('description')
+  const watchedAmount = form.watch('amount')
 
-  const availableCategories = selectedType === 'INCOME' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+  // Don't show categories until type is selected
+  const availableCategories = selectedType === 'INCOME' ? INCOME_CATEGORIES : 
+                               selectedType === 'EXPENSE' ? EXPENSE_CATEGORIES : []
 
   const openNew = () => {
     setEditing(null)
+    setShowReceiptUpload(false)
     form.reset({
-      type: 'EXPENSE',
+      type: '' as any, // Empty to show placeholder
       category: '',
       customCategory: '',
-      date: new Date().toISOString().slice(0, 10),
+      date: '', // Empty date
       description: '',
-      amount: 0,
+      amount: '' as any, // Empty instead of 0
     })
     setDialogOpen(true)
   }
 
   const openEdit = (row: FinancialRecordResponse) => {
     setEditing(row)
+    setShowReceiptUpload(false)
     const isOther = ![...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES].includes(row.category as any)
     form.reset({
       amount: Number(row.amount),
@@ -341,6 +360,7 @@ export function RecordsPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Note</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   {canMutate ? <TableHead className="w-[120px]" /> : null}
@@ -353,6 +373,9 @@ export function RecordsPage() {
                     <TableCell className="font-medium">{r.category}</TableCell>
                     <TableCell>
                       <Badge variant={r.type === 'INCOME' ? 'default' : 'secondary'}>{r.type}</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
+                      {r.description || '—'}
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">{r.userName ?? '—'}</div>
@@ -396,13 +419,35 @@ export function RecordsPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit record' : 'Add record'}</DialogTitle>
             <DialogDescription>
               {editing ? 'Update record details.' : 'Add a new transaction to your workspace.'}
             </DialogDescription>
           </DialogHeader>
+          
+          {/* AI Receipt Upload Section */}
+          {!editing && !showReceiptUpload && (
+            <div className="pb-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => setShowReceiptUpload(true)}
+              >
+                <Camera className="h-4 w-4" />
+                Upload Receipt (AI OCR)
+              </Button>
+            </div>
+          )}
+          
+          {showReceiptUpload && !editing && (
+            <ReceiptUpload 
+              form={form} 
+              onClose={() => setShowReceiptUpload(false)}
+            />
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -414,7 +459,7 @@ export function RecordsPage() {
                       Amount <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      <Input type="number" step="0.01" placeholder="Enter amount" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -439,7 +484,7 @@ export function RecordsPage() {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -459,10 +504,10 @@ export function RecordsPage() {
                     <FormLabel>
                       Category <span className="text-red-500">*</span>
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedType}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
+                          <SelectValue placeholder={selectedType ? "Select a category" : "Select type first"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -503,7 +548,18 @@ export function RecordsPage() {
                       Date <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input 
+                        type="date" 
+                        {...field}
+                        onClick={(e) => {
+                          // Show date picker on click
+                          e.currentTarget.showPicker?.()
+                        }}
+                        onFocus={(e) => {
+                          // Show date picker on focus instead of allowing manual text input
+                          e.target.showPicker?.()
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -514,14 +570,30 @@ export function RecordsPage() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Note (optional)</FormLabel>
+                    <FormLabel>Description (optional)</FormLabel>
+                    <FormDescription className="text-xs">
+                      Describe the transaction. AI uses this to suggest the type and category.
+                    </FormDescription>
                     <FormControl>
-                      <Textarea rows={3} placeholder="Add any additional details..." {...field} />
+                      <Textarea 
+                        rows={2} 
+                        placeholder="e.g. Coffee at Starbucks, Monthly salary, Uber ride" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              
+              {/* AI Category Suggestion - Always visible when adding new record */}
+              {!editing && (
+                <AiCategorySuggestion 
+                  form={form}
+                  description={watchedDescription || ''}
+                  amount={String(watchedAmount || '')}
+                />
+              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancel

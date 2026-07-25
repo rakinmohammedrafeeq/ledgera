@@ -143,6 +143,110 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  
+  /* ── Cursor styles for clickable elements ────────────────────────── */
+  button,
+  a,
+  [role="button"],
+  [role="link"],
+  [role="menuitem"],
+  [role="tab"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  label[for],
+  select,
+  summary {
+    @apply cursor-pointer;
+  }
+  
+  button:disabled,
+  [disabled] {
+    @apply cursor-not-allowed;
+  }
+
+  /* ── Custom Scrollbar Styles (Theme-Aware) ─────────────────────── */
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--muted-foreground) / 0.6);
+    background-clip: padding-box;
+  }
+
+  /* Scrollbar corner */
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* ── Number Input Spinner Styles (Theme-Aware) ────────────────────── */
+  /* Chrome, Safari, Edge, Opera */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    height: auto;
+    opacity: 0.6;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button:hover,
+  input[type="number"]::-webkit-outer-spin-button:hover {
+    opacity: 1;
+  }
+
+  /* Firefox - custom buttons */
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* Style for focused number inputs */
+  input[type="number"]:focus::-webkit-inner-spin-button,
+  input[type="number"]:focus::-webkit-outer-spin-button {
+    opacity: 0.8;
+  }
+
+  /* Custom styling to match theme */
+  input[type="number"]::-webkit-inner-spin-button {
+    filter: brightness(1) contrast(1);
+  }
+
+  /* Dark mode adjustments */
+  .dark input[type="number"]::-webkit-inner-spin-button,
+  .dark input[type="number"]::-webkit-outer-spin-button {
+    opacity: 0.5;
+  }
+
+  .dark input[type="number"]::-webkit-inner-spin-button:hover,
+  .dark input[type="number"]::-webkit-outer-spin-button:hover {
+    opacity: 0.9;
+  }
 }
 
 /* ── Utility classes ───────────────────────────────────────────────── */

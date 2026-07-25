@@ -74,4 +74,8 @@ public interface FinancialRecordRepository extends JpaRepository<FinancialRecord
            "GROUP BY EXTRACT(YEAR FROM r.date), EXTRACT(MONTH FROM r.date), r.type " +
            "ORDER BY EXTRACT(YEAR FROM r.date), EXTRACT(MONTH FROM r.date)")
     List<Object[]> getMonthlyTrendsByWorkspace(@Param("workspaceId") Long workspaceId);
+
+    // For AI insights generation
+    @EntityGraph(attributePaths = "user")
+    List<FinancialRecord> findTop50ByWorkspaceIdOrderByDateDesc(Long workspaceId);
 }
