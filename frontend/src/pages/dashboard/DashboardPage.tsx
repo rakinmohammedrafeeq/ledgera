@@ -67,11 +67,13 @@ export function DashboardPage() {
 
   const monthly = useMemo(
     () =>
-      (data?.monthlyTrends ?? []).map((m) => ({
-        label: m.monthName || `${m.year}-${m.month}`,
-        income: Number(m.income),
-        expense: Number(m.expense),
-      })),
+      (data?.monthlyTrends ?? [])
+        .map((m) => ({
+          label: m.monthName || `${m.year}-${m.month}`,
+          income: Number(m.income) || 0,
+          expense: Number(m.expense) || 0,
+        }))
+        .filter((m) => !isNaN(m.income) && !isNaN(m.expense)),
     [data?.monthlyTrends],
   )
 
@@ -79,8 +81,9 @@ export function DashboardPage() {
     const rows = [...(data?.categoryTotals ?? [])]
       .map((c) => ({
         name: c.category || 'Other',
-        total: Number(c.total),
+        total: Number(c.total) || 0,
       }))
+      .filter((c) => !isNaN(c.total) && c.total > 0)
       .sort((a, b) => b.total - a.total)
       .slice(0, 8)
     return rows
@@ -172,7 +175,7 @@ export function DashboardPage() {
                 No data yet
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
                 <AreaChart data={monthly} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="dashIncome" x1="0" y1="0" x2="0" y2="1">
@@ -227,7 +230,7 @@ export function DashboardPage() {
                 No data yet
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
                 <BarChart data={categories} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
                   <CartesianGrid {...GRID_STYLE} horizontal={false} />
                   <XAxis type="number" hide />
