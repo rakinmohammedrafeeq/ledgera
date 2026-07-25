@@ -15,6 +15,7 @@ public class OAuth2Config {
 
     @Bean
     public ClientRegistrationRepository clientRegistrationRepository() {
+        // Load .env file if it exists (local dev), otherwise use system environment variables (production)
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
         
         String clientId = dotenv.get("GOOGLE_CLIENT_ID");

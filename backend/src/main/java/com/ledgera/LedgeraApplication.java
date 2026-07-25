@@ -10,10 +10,11 @@ public class LedgeraApplication {
     public static void main(String[] args) {
 
         try {
-            Dotenv dotenv = Dotenv.load();
+            // Load .env file if it exists (local dev), otherwise use system environment variables (production)
+            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
             
             System.out.println("=".repeat(60));
-            System.out.println("Loading environment variables from .env file");
+            System.out.println("Loading environment variables (.env file or system env)");
             System.out.println("=".repeat(60));
 
             // =========================
