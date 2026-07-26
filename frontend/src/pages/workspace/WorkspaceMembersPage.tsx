@@ -16,6 +16,8 @@ export const WorkspaceMembersPage: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<WorkspaceMember | null>(null);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
 
   const loadMembers = async () => {
     if (!currentWorkspace) return;
@@ -90,14 +92,17 @@ export const WorkspaceMembersPage: React.FC = () => {
   };
 
   const handleRemoveMember = async (userId: number) => {
-    if (!currentWorkspace) return;
-    if (!confirm('Remove this member from the workspace?')) return;
+    if (!currentWorkspace || !memberToRemove) return;
 
+    setIsRemovingMember(true);
     try {
       await workspaceMemberApi.removeMember(currentWorkspace.id, userId);
       await loadMembers();
+      setMemberToRemove(null);
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to remove member');
+    } finally {
+      setIsRemovingMember(false);
     }
   };
 
@@ -338,7 +343,7 @@ export const WorkspaceMembersPage: React.FC = () => {
                           <span className="text-sm text-muted-foreground">Workspace owner</span>
                         ) : (
                           <button
-                            onClick={() => handleRemoveMember(member.userId)}
+                            onClick={() => setMemberToRemove(member)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -413,6 +418,52 @@ export const WorkspaceMembersPage: React.FC = () => {
                     </>
                   ) : (
                     'Delete Workspace'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Member Confirmation */}
+      {memberToRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Remove Member</h3>
+                  <p className="text-sm text-muted-foreground">Remove from workspace</p>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">
+                Are you sure you want to remove <span className="font-medium text-foreground">{memberToRemove.userName}</span> from this workspace?
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setMemberToRemove(null)}
+                  disabled={isRemovingMember}
+                  className="flex-1 px-4 py-2.5 bg-accent hover:bg-accent/80 text-foreground rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleRemoveMember(memberToRemove.userId)}
+                  disabled={isRemovingMember}
+                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isRemovingMember ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Removing...
+                    </>
+                  ) : (
+                    'Remove Member'
                   )}
                 </button>
               </div>
