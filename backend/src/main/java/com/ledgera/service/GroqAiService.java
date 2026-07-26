@@ -1,4 +1,4 @@
-﻿package com.ledgera.service;
+package com.ledgera.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
