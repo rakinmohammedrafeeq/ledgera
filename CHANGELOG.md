@@ -13,6 +13,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SECURITY.md` with security policies and vulnerability reporting process
 - `CHANGELOG.md` to track project changes
 
+## [1.1.0] - 2026-07-27
+
+### Added
+
+#### AI Agent with Tool-Calling
+- Autonomous AI agent loop using Groq Llama 3.3 70B with multi-step reasoning
+- 6 registered agent tools for comprehensive financial operations:
+  - `get_transactions` - Query and filter financial records with advanced parameters
+  - `get_spending_summary` - Analyze spending patterns by category
+  - `search_records` - Full-text search across transaction descriptions
+  - `get_monthly_trends` - Track income/expense trends over time periods
+  - `get_budget_status` - Calculate budget health and provide recommendations
+  - `create_transaction` - Create new transactions (requires user confirmation)
+- Write-confirmation flow with TTL-based pending action store (5-minute expiry)
+- AgentController with `/api/ai/agent`, `/confirm`, and `/cancel` endpoints
+- AgentOrchestrationService for autonomous agent loop execution
+- AgentToolRegistry for centralized tool registration and metadata
+- AgentToolExecutorService for secure tool invocation
+- PendingActionStore for managing user confirmations with TTL
+- DTOs: AgentRequest, AgentResponse, ConfirmActionRequest, PendingAction
+- Frontend AgentChat component with tabbed UI (AI Advisor + AI Agent)
+- AgentConfirmModal with overlay-click blocking for secure confirmations
+
+#### UI/UX Improvements
+- Tabbed AdvisorPage with AI Advisor and AI Agent tabs on same page
+- Enhanced landing page with AI Agent feature card
+- Improved modal interactions with proper click-outside handling
+- Better loading states and error handling for agent responses
+
+### Changed
+- Updated README.md with AI Agent documentation and architecture
+- Updated repository structure section with new agent-related files
+- Expanded API endpoints section with agent endpoints
+- Enhanced feature descriptions to include AI Agent capabilities
+
+### Fixed
+- UTF-8 encoding issues throughout the project:
+  - Added `project.build.sourceEncoding=UTF-8` to pom.xml
+  - Fixed rupee symbol (₹) encoding in all responses and DTOs
+  - Updated StringEntity and EntityUtils to use UTF-8 explicitly
+  - Ensured consistent character encoding across all AI services
+- AgentConfirmModal overlay click-through preventing accidental cancellations
+
 ## [1.0.0] - 2024-01-XX
 
 ### Added

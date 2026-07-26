@@ -36,6 +36,11 @@ export function LandingPage() {
       desc: 'Chat with AI for investment advice, portfolio tips, and wealth-building strategies.',
     },
     {
+      icon: Sparkles,
+      title: 'AI Agent',
+      desc: 'Autonomous AI agent with tool-calling — query data, analyze trends, and create transactions by just asking.',
+    },
+    {
       icon: BarChart3,
       title: 'Team Workspaces',
       desc: 'Collaborate with your team using shared workspaces and role-based access.',
@@ -49,11 +54,6 @@ export function LandingPage() {
       icon: TrendingUp,
       title: 'Real-time Analytics',
       desc: 'Interactive dashboards with spending trends and category breakdowns.',
-    },
-    {
-      icon: Sparkles,
-      title: 'Smart Automation',
-      desc: 'Let AI handle the boring stuff while you focus on your finances.',
     },
   ]
 
@@ -111,7 +111,7 @@ export function LandingPage() {
               </h1>
 
               <p className="max-w-lg text-base leading-relaxed text-white/45">
-                Smart categorization, receipt scanning, AI financial advisor, and team workspaces. 
+                Smart categorization, receipt scanning, AI Agent with tool-calling, RAG financial advisor, and team workspaces. 
                 Track expenses, get insights, and collaborate seamlessly.
               </p>
 
@@ -141,8 +141,8 @@ export function LandingPage() {
           {/* ── Features ─────────────────────────────────────── */}
           <section className="mt-40 lg:mt-48">
             <div className="mb-6">
-              <h2 className="text-xl font-semibold">AI-Powered Features & Enterprise Security</h2>
-              <p className="mt-1 text-sm text-white/40">Track, analyze, collaborate with intelligent automation.</p>
+              <h2 className="text-xl font-semibold">AI Agent, RAG Advisor & Enterprise Security</h2>
+              <p className="mt-1 text-sm text-white/40">Autonomous AI tools, intelligent insights, and secure collaboration.</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -15,7 +15,7 @@ import { useState } from 'react'
 const mainNav = [
   { title: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard },
   { title: 'Records', href: '/app/records', icon: Receipt },
-  { title: 'AI Advisor', href: '/app/advisor', icon: Brain },
+  { title: 'AI Tools', href: '/app/advisor', icon: Brain },
 ] as const
 
 const teamNav = [{ title: 'Members', href: '/app/members', icon: Users }] as const

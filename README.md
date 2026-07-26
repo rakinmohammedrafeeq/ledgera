@@ -21,8 +21,8 @@
 Ledgera is a production-grade, AI-powered collaborative finance platform built for teams and enterprises. It combines cutting-edge AI capabilities (Groq + Gemini 3.6 + RAG with pgvector), multi-workspace collaboration, comprehensive analytics, and enterprise-level security into a modern SaaS application.
 
 **Key Highlights:**
-- 🤖 **Advanced AI Architecture** - Groq AI (Llama 3.3 70B), Gemini 3.6 Flash (OCR), RAG-powered financial advisor with local embeddings (all-MiniLM-L6-v2)
-- 🧠 **RAG Financial Advisor** - PostgreSQL pgvector semantic search + context-aware investment advice
+- 🤖 **Advanced AI Architecture** - Groq AI (Llama 3.3 70B), Gemini 3.6 Flash (OCR), AI Agent with tool-calling, RAG-powered financial advisor with local embeddings (all-MiniLM-L6-v2)
+- 🧠 **RAG Financial Advisor + AI Agent** - PostgreSQL pgvector semantic search + context-aware investment advice + autonomous agent with 6 tools
 - 🔐 **Enterprise Security** - Google OAuth 2.0, JWT authentication, Bucket4j rate limiting, RBAC, admin platform
 - 👥 **Multi-Workspace Collaboration** - Team management with granular permissions (Owner/Editor/Viewer)
 - 📊 **Real-Time Analytics** - Interactive dashboards with TanStack Query, Recharts visualization, category breakdowns
@@ -40,12 +40,22 @@ Ledgera is a production-grade, AI-powered collaborative finance platform built f
 - **Receipt OCR & Auto-Entry** - Upload receipt photos and extract amount, merchant, date, category, and type automatically (powered by Gemini 3.6 Flash with enhanced accuracy)
 - **Cloudinary Cloud Storage** - Enterprise-grade receipt image storage with CDN delivery, automatic optimization, global edge caching, and 25GB free tier
 - **AI Financial Insights** - Get personalized spending analysis, budget recommendations, savings rate tracking, and trend analysis (powered by Groq AI with ~0.95s time-to-first-token)
+- **AI Agent with Tool-Calling** - Autonomous AI agent loop using Groq Llama 3.3 70B with 6 registered tools:
+  - `get_transactions` - Query and filter financial records
+  - `get_spending_summary` - Analyze spending by category
+  - `search_records` - Full-text search across transactions
+  - `get_monthly_trends` - Track income/expense trends over time
+  - `get_budget_status` - Calculate budget health and recommendations
+  - `create_transaction` - Create new transactions (with user confirmation)
+  - Write-confirmation flow with TTL pending action store for secure transaction creation
+  - Multi-step reasoning and autonomous tool orchestration
 - **RAG Financial Advisor** - Advanced AI advisor using Retrieval-Augmented Generation:
   - Local sentence transformers for embeddings (all-MiniLM-L6-v2, 384 dimensions) via Deep Java Library (DJL) 0.28.0
   - PostgreSQL pgvector 0.1.4 for semantic vector search
   - Context-aware investment advice based on your actual financial records
   - Portfolio recommendations, tax strategies, wealth-building guidance
   - Session-based conversations with memory and semantic retrieval
+  - Tabbed UI with AI Advisor + AI Agent on same page
 - **Hybrid Provider Strategy** - Optimal quota management using Groq (text), Gemini 3.6 (vision), and local models (embeddings)
 - Real-time AI suggestions with sub-second response times (average ~0.5s)
 - Multimodal AI processing for text and image analysis
@@ -216,8 +226,11 @@ ledgera/
 │  │  │  └─ SecurityConfig.java      # Spring Security
 │  │  ├─ controller/                  # REST controllers
 │  │  │  ├─ AdminUserController.java
+│  │  │  ├─ AgentController.java      # AI Agent endpoints
+│  │  │  ├─ AiController.java         # AI categorization/OCR
 │  │  │  ├─ AuthController.java
 │  │  │  ├─ DashboardController.java
+│  │  │  ├─ FinancialAdvisorController.java  # RAG advisor
 │  │  │  ├─ FinancialRecordController.java
 │  │  │  ├─ HealthController.java
 │  │  │  ├─ OtpController.java
@@ -225,6 +238,15 @@ ledgera/
 │  │  │  ├─ WorkspaceController.java
 │  │  │  └─ WorkspaceMemberController.java
 │  │  ├─ dto/                         # Data Transfer Objects
+│  │  │  ├─ AdvisorChatRequest.java
+│  │  │  ├─ AdvisorChatResponse.java
+│  │  │  ├─ AgentRequest.java
+│  │  │  ├─ AgentResponse.java
+│  │  │  ├─ AiCategorizationRequest.java
+│  │  │  ├─ AiCategorizationResponse.java
+│  │  │  ├─ ConfirmActionRequest.java
+│  │  │  ├─ PendingAction.java
+│  │  │  └─ ... (other DTOs)
 │  │  ├─ entity/                      # JPA entities
 │  │  │  ├─ FinancialRecord.java
 │  │  │  ├─ User.java
@@ -253,12 +275,21 @@ ledgera/
 │  │  │  └─ WorkspacePermissionEvaluator.java
 │  │  └─ service/                     # Business logic
 │  │     ├─ AdminUserService.java
+│  │     ├─ AgentOrchestrationService.java    # Agent loop
+│  │     ├─ AgentToolRegistry.java            # Tool registration
+│  │     ├─ AgentToolExecutorService.java     # Tool execution
+│  │     ├─ PendingActionStore.java           # Confirmation store
 │  │     ├─ AuthService.java
 │  │     ├─ CurrentUserService.java
 │  │     ├─ DashboardService.java
 │  │     ├─ EmailService.java
+│  │     ├─ EmbeddingService.java             # RAG embeddings
+│  │     ├─ FinancialAdvisorService.java      # RAG advisor
 │  │     ├─ FinancialRecordService.java
+│  │     ├─ GroqAiService.java                # Groq integration
+│  │     ├─ GeminiAiService.java              # Gemini integration
 │  │     ├─ UserService.java
+│  │     ├─ VectorSearchService.java          # Semantic search
 │  │     ├─ WorkspaceService.java
 │  │     └─ WorkspaceMemberService.java
 │  ├─ src/main/resources/
@@ -281,6 +312,9 @@ ledgera/
 │  ├─ src/
 │  │  ├─ api/                         # API client
 │  │  │  ├─ adminApi.ts
+│  │  │  ├─ advisorApi.ts             # RAG advisor
+│  │  │  ├─ agentApi.ts               # AI Agent
+│  │  │  ├─ aiApi.ts                  # AI categorization/OCR
 │  │  │  ├─ authApi.ts
 │  │  │  ├─ client.ts
 │  │  │  ├─ dashboardApi.ts
@@ -289,6 +323,11 @@ ledgera/
 │  │  │  ├─ workspaceApi.ts
 │  │  │  └─ workspaceMemberApi.ts
 │  │  ├─ components/                  # React components
+│  │  │  ├─ advisor/                  # RAG advisor UI
+│  │  │  │  ├─ AdvisorChat.tsx
+│  │  │  │  ├─ AgentChat.tsx          # AI Agent UI
+│  │  │  │  ├─ AgentConfirmModal.tsx  # Confirmation modal
+│  │  │  │  └─ FinancialInsights.tsx
 │  │  │  ├─ auth/                     # Auth components
 │  │  │  ├─ backend/                  # Backend status
 │  │  │  ├─ dashboard/                # Dashboard widgets
@@ -307,6 +346,8 @@ ledgera/
 │  │  ├─ hooks/                       # Custom hooks
 │  │  ├─ pages/                       # Page components
 │  │  │  ├─ admin/                    # Admin pages
+│  │  │  ├─ advisor/                  # AI Advisor page
+│  │  │  │  └─ index.tsx              # Tabbed UI (Advisor + Agent)
 │  │  │  ├─ auth/                     # Auth pages
 │  │  │  ├─ dashboard/                # Dashboard page
 │  │  │  ├─ records/                  # Records page
@@ -382,6 +423,13 @@ APP_BASE_URL=http://localhost:5173
 ```
 
 **Note:** Use `backend/.env.example` as a reference template.
+
+**Important:** To ensure proper character encoding (₹ rupee symbol, etc.), add the following to `pom.xml`:
+```xml
+<properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+</properties>
+```
 
 ### Frontend Environment Variables
 
@@ -570,7 +618,15 @@ npm run preview
 - `POST /api/ai/categorize` — AI-powered transaction categorization
 - `POST /api/ai/receipt` — Upload receipt for OCR and auto-extraction
 - `GET /api/ai/insights` — Get AI-generated financial insights
+- `POST /api/ai/agent` — AI agent tool-calling loop (query, analyze, create)
+- `POST /api/ai/agent/confirm` — Confirm pending agent action
+- `POST /api/ai/agent/cancel` — Cancel pending agent action
 - `GET /api/ai/health` — Check AI service availability
+
+### Financial Advisor (`/api/advisor`)
+- `POST /api/advisor/chat` — Chat with RAG-powered financial advisor
+- `POST /api/advisor/insights/generate` — Generate personalized insights
+- `GET /api/advisor/insights` — Retrieve stored insights
 
 ### Health Check
 - `GET /healthz` — Health check endpoint (unauthenticated)
