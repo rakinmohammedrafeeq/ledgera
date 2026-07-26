@@ -101,7 +101,7 @@ export function LandingPage() {
           </header>
 
           {/* ── Hero ─────────────────────────────────────────── */}
-          <main className="mt-24 grid gap-12 lg:mt-32 lg:grid-cols-12 lg:items-center" style={{ animation: 'slide-up 600ms ease-out both' }}>
+          <main className="mt-32 grid gap-12 lg:mt-40 lg:grid-cols-12 lg:items-center" style={{ animation: 'slide-up 600ms ease-out both' }}>
             <div className="space-y-7 lg:col-span-7">
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-[3.25rem] lg:leading-[1.15]">
                 AI-powered finance tracking,
@@ -139,7 +139,7 @@ export function LandingPage() {
           </main>
 
           {/* ── Features ─────────────────────────────────────── */}
-          <section className="mt-32 lg:mt-40">
+          <section className="mt-40 lg:mt-48">
             <div className="mb-6">
               <h2 className="text-xl font-semibold">AI-Powered Features & Enterprise Security</h2>
               <p className="mt-1 text-sm text-white/40">Track, analyze, collaborate with intelligent automation.</p>
