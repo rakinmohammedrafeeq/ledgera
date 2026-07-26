@@ -334,7 +334,13 @@
   .recharts-wrapper .recharts-text,
   .recharts-wrapper .recharts-legend-item-text,
   .recharts-wrapper .recharts-cartesian-axis-tick-value {
-    fill: var(--chart-axis) !important;
+    fill: #1a1a1a !important;
+  }
+  
+  .dark .recharts-wrapper .recharts-text,
+  .dark .recharts-wrapper .recharts-legend-item-text,
+  .dark .recharts-wrapper .recharts-cartesian-axis-tick-value {
+    fill: #ffffff !important;
   }
   .recharts-wrapper .recharts-cartesian-grid line,
   .recharts-wrapper .recharts-cartesian-grid-horizontal line,

@@ -38,7 +38,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext'
 import { useDashboardQuery } from '@/hooks'
 import { GRID_STYLE, CHART_PALETTE } from '@/lib/chart-theme'
 
-const TICK = { fill: 'var(--muted-foreground)', fontSize: 11 }
+const TICK = { fill: 'hsl(var(--foreground))', fontSize: 11 }
 
 function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
@@ -248,7 +248,7 @@ export function DashboardPage() {
                       const row = payload[0].payload as { name: string; total: number }
                       return (
                         <div className="chart-tooltip">
-                          <div className="font-medium">{row.name}</div>
+                          <div className="font-medium text-foreground">{row.name}</div>
                           <div className="text-primary">{formatCurrency(row.total)}</div>
                         </div>
                       )

@@ -111,10 +111,14 @@ public class DashboardService {
             } else {
                 ct.setExpense(amount);
             }
-            ct.setTotal(ct.getIncome().subtract(ct.getExpense()));
         }
 
-        return new ArrayList<>(categoryMap.values());
+        // Filter to only include expense categories and set total = expense for the chart
+        // The "Top categories" chart is meant to show spending by category
+        return categoryMap.values().stream()
+                .filter(ct -> ct.getExpense().compareTo(BigDecimal.ZERO) > 0)
+                .peek(ct -> ct.setTotal(ct.getExpense()))
+                .collect(Collectors.toList());
     }
 
     private List<MonthlyTrend> buildMonthlyTrends(Long workspaceId) {

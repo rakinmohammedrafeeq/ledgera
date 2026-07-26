@@ -1,4 +1,4 @@
-import { Brain } from 'lucide-react';
+import { Brain, TrendingUp, Briefcase, PiggyBank } from 'lucide-react';
 import { AdvisorChat } from '../../components/advisor/AdvisorChat';
 import { FinancialInsights } from '../../components/advisor/FinancialInsights';
 
@@ -44,19 +44,28 @@ export const AdvisorPage = () => {
       {/* Features Info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-lg border bg-card">
-          <h3 className="font-semibold mb-2">📈 Investment Advice</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold">Investment Advice</h3>
+          </div>
           <p className="text-sm text-muted-foreground">
             Get recommendations on stocks, mutual funds, real estate, and other investment opportunities
           </p>
         </div>
         <div className="p-4 rounded-lg border bg-card">
-          <h3 className="font-semibold mb-2">💼 Portfolio Planning</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <Briefcase className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold">Portfolio Planning</h3>
+          </div>
           <p className="text-sm text-muted-foreground">
             Receive personalized portfolio allocation strategies based on your financial capacity
           </p>
         </div>
         <div className="p-4 rounded-lg border bg-card">
-          <h3 className="font-semibold mb-2">💰 Wealth Building</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <PiggyBank className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold">Wealth Building</h3>
+          </div>
           <p className="text-sm text-muted-foreground">
             Get actionable advice on savings, tax planning, and long-term wealth creation
           </p>

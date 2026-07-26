@@ -212,6 +212,7 @@ public class FinancialAdvisorService {
 
     /**
      * Get active insights for user
+     * Auto-regenerates if insights are stale (older than today)
      */
     public List<FinancialInsightResponse> getActiveInsights(Long workspaceId) {
         User currentUser = currentUserService.requireCurrentUser();
@@ -224,6 +225,19 @@ public class FinancialAdvisorService {
         } else {
             insights = insightRepository.findByUserIdAndStatusOrderByCreatedAtDesc(
                     userId, "active");
+        }
+
+        // Check if insights are stale (older than today) or don't exist
+        boolean needsRefresh = insights.isEmpty() || 
+                insights.stream().allMatch(insight -> 
+                    insight.getCreatedAt().toLocalDate().isBefore(LocalDateTime.now().toLocalDate())
+                );
+
+        if (needsRefresh) {
+            logger.info("Insights are stale or missing, regenerating for userId={}, workspaceId={}", 
+                    userId, workspaceId);
+            // Regenerate insights
+            return generateInsights(workspaceId);
         }
 
         return insights.stream()

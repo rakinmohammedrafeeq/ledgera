@@ -37,7 +37,7 @@ const getPriorityColor = (priority: FinancialInsight['priority']) => {
 
 export const FinancialInsights = () => {
   const { currentWorkspace } = useWorkspace();
-  const { data: insights, isLoading, refetch } = useActiveInsights(currentWorkspace?.id);
+  const { data: insights, isLoading } = useActiveInsights(currentWorkspace?.id);
   const generateMutation = useGenerateInsights();
 
   const handleGenerate = () => {
@@ -47,12 +47,14 @@ export const FinancialInsights = () => {
     generateMutation.mutate(currentWorkspace.id);
   };
 
-  // Refetch when workspace changes
+  // Auto-generate insights on mount (like Dashboard does)
   useEffect(() => {
-    if (currentWorkspace?.id) {
-      refetch();
+    if (currentWorkspace?.id && !generateMutation.isPending) {
+      console.log('Auto-generating insights on page load...');
+      generateMutation.mutate(currentWorkspace.id);
     }
-  }, [currentWorkspace?.id, refetch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkspace?.id]);
 
   if (isLoading) {
     return (
