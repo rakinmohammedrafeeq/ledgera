@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Receipt, Users, ChevronLeft, ChevronRight, Shield, Brain } from 'lucide-react'
+import { LayoutDashboard, Receipt, Users, ChevronsLeft, ChevronsRight, Shield, Brain } from 'lucide-react'
 import { APP_LOGO_SRC } from '@/config/brandAssets'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -41,14 +41,33 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   const isActive = (href: string) =>
     location.pathname === href || (href !== '/app/dashboard' && location.pathname.startsWith(href))
 
+  const handleSidebarClick = (e: React.MouseEvent) => {
+    // If sidebar is collapsed, expand it on any click
+    if (isCollapsed) {
+      toggleSidebar()
+    }
+  }
+
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="flex h-full min-h-screen flex-col bg-sidebar text-sidebar-foreground">
+      <div 
+        className={cn(
+          "flex h-full min-h-screen flex-col bg-sidebar text-sidebar-foreground",
+          isCollapsed && "cursor-pointer"
+        )}
+        onClick={handleSidebarClick}
+      >
         <ScrollArea className="h-full flex-1" viewportClassName="scrollbar-none" scrollbarClassName="hidden">
           <div className="flex min-h-screen flex-col pb-6 sm:pb-8">
             {/* ── Logo & Toggle ────────────────────────────────── */}
-            <div className="flex h-16 items-center px-4 gap-3 relative">
-              <div className="flex items-center gap-2.5 min-w-0 overflow-hidden flex-1">
+            <div className={cn(
+              "flex h-16 items-center gap-3 relative",
+              isCollapsed ? "px-0 justify-center" : "px-4 justify-start"
+            )}>
+              <div className={cn(
+                "flex items-center gap-2.5 min-w-0 overflow-hidden",
+                isCollapsed ? "justify-center pl-6" : "flex-1"
+              )}>
                 <img src={APP_LOGO_SRC} alt="Ledgera" className="h-8 w-8 flex-shrink-0" loading="eager" />
                 <span className={`text-lg font-semibold tracking-tight whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100 overflow-hidden text-ellipsis'}`}>
                   Ledgera
@@ -61,14 +80,17 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
                 onClick={toggleSidebar}
                 className={`h-7 w-7 flex-shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300 hidden md:block ${isCollapsed ? 'opacity-0 w-0 overflow-hidden pointer-events-none' : 'opacity-100'}`}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronsLeft className="h-4 w-4" />
               </Button>
             </div>
 
             <Separator className="bg-sidebar-border" />
 
             {/* ── Workspace Switcher ───────────────────────────── */}
-            <div className="py-3">
+            <div className={cn(
+              "py-3",
+              isCollapsed ? "flex justify-center" : ""
+            )}>
               <WorkspaceSwitcher onCreateClick={() => setShowCreateWorkspace(true)} />
             </div>
 
@@ -90,7 +112,10 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
                         <Link
                           key={item.href}
                           to={item.href}
-                          onClick={handleNavClick}
+                          onClick={(e) => {
+                            e.stopPropagation() // Prevent sidebar expansion
+                            handleNavClick()
+                          }}
                           className={cn(
                             'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
                             active
@@ -142,7 +167,10 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
                           <Link
                             key={item.href}
                             to={item.href}
-                            onClick={handleNavClick}
+                            onClick={(e) => {
+                              e.stopPropagation() // Prevent sidebar expansion
+                              handleNavClick()
+                            }}
                             className={cn(
                               'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
                               active
@@ -195,7 +223,10 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
                           <Link
                             key={item.href}
                             to={item.href}
-                            onClick={handleNavClick}
+                            onClick={(e) => {
+                              e.stopPropagation() // Prevent sidebar expansion
+                              handleNavClick()
+                            }}
                             className={cn(
                               'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
                               active
@@ -237,26 +268,6 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
             </div>
           </div>
         </ScrollArea>
-        
-        {/* ── Collapse Toggle (Collapsed State) ──────────────────────── */}
-        {isCollapsed && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className={cn(
-              'absolute -right-3 top-4 z-50',
-              'h-6 w-6 rounded-full',
-              'bg-sidebar-accent border border-sidebar-border',
-              'text-sidebar-foreground/60 hover:text-sidebar-foreground',
-              'hover:bg-sidebar-accent/80',
-              'shadow-md hover:shadow-lg',
-              'transition-all duration-200',
-            )}
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Button>
-        )}
       </div>
 
       {/* ── Create Workspace Modal ──────────────────────────── */}

@@ -29,7 +29,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false)
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border/50 bg-background/80 px-4 backdrop-blur-lg md:px-6">
+    <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b border-border/50 bg-background/80 px-4 backdrop-blur-lg md:px-6">
       {/* Mobile Menu Button */}
       <Button
         variant="ghost"
@@ -47,18 +47,18 @@ export function Navbar({ onMenuClick }: NavbarProps) {
       {/* Right Side */}
       <div className="flex items-center gap-1">
         {/* Theme Toggle */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               id="theme-toggle"
               variant="ghost"
               size="icon"
               aria-label="Toggle theme"
-              className="relative h-9 w-9 overflow-hidden transition-colors duration-150 hover:bg-muted"
+              className="relative h-12 w-12 overflow-hidden transition-colors duration-150 hover:bg-muted"
             >
               <Sun
                 className={cn(
-                  'absolute h-4 w-4 transition-all duration-300',
+                  'absolute h-6 w-6 transition-all duration-300',
                   isDark
                     ? 'rotate-90 scale-0 opacity-0'
                     : 'rotate-0 scale-100 opacity-100',
@@ -66,7 +66,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
               />
               <Moon
                 className={cn(
-                  'absolute h-4 w-4 transition-all duration-300',
+                  'absolute h-6 w-6 transition-all duration-300',
                   isDark
                     ? 'rotate-0 scale-100 opacity-100'
                     : '-rotate-90 scale-0 opacity-0',
@@ -74,7 +74,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
               />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
+          <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="w-36">
             <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer">
               <Sun className="mr-2 h-4 w-4" />
               <span>Light</span>
@@ -94,21 +94,26 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         </DropdownMenu>
 
         {/* User Menu */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               type="button"
               variant="ghost"
-              className="relative h-9 w-9 rounded-full ring-1 ring-border/50 transition-all hover:ring-primary/30"
+              className="relative h-10 w-10 rounded-full ring-1 ring-border/50 transition-all hover:ring-primary/30"
             >
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary/12 text-primary text-xs font-semibold">
+              <Avatar className="h-9 w-9">
+                <AvatarFallback className="bg-primary/12 text-primary text-sm font-semibold">
                   {user?.name ? getInitials(user.name) : 'U'}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent 
+            align="end" 
+            side="bottom" 
+            sideOffset={8}
+            className="w-56"
+          >
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1 min-w-0 overflow-hidden">
                 <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>

@@ -141,9 +141,10 @@
     @apply border-border outline-ring/50;
   }
   
-  /* Global zoom level - adjust the value to zoom out more or less */
+  /* Removed global zoom to fix dropdown positioning issues */
+  /* Use font-size scaling instead for better compatibility */
   html {
-    zoom: 0.9; /* 90% zoom - equivalent to Ctrl - */
+    font-size: 90%; /* Scale down base font size to 90% */
   }
   
   body {

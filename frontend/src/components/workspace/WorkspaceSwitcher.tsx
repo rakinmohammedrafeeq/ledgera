@@ -96,7 +96,10 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ onCreateCl
       {/* Main Workspace Button */}
       <div className="w-full group relative">
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={(e) => {
+            e.stopPropagation(); // Keep sidebar collapsed
+            setIsOpen(!isOpen);
+          }}
           className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-sidebar-accent/50 hover:bg-sidebar-accent transition-all duration-200 group-hover:shadow-md"
         >
           {/* Gold accent line with glow effect */}
@@ -106,7 +109,7 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ onCreateCl
           </div>
           
           {/* Workspace info */}
-          <div className="flex flex-col items-start min-w-0 flex-1">
+          <div className="flex flex-col items-start justify-center min-w-0 flex-1">
             <span className="text-sm font-bold text-sidebar-foreground break-words w-full leading-tight">
               {currentWorkspace?.name || 'Select Workspace'}
             </span>
@@ -215,7 +218,10 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ onCreateCl
               {workspaces.map((workspace, index) => (
                 <button
                   key={workspace.id}
-                  onClick={() => handleSwitch(workspace.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Keep sidebar collapsed
+                    handleSwitch(workspace.id);
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/80 transition-all duration-150 group/workspace ${
                     currentWorkspace?.id === workspace.id ? 'bg-accent/50' : ''
                   }`}
@@ -246,7 +252,8 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ onCreateCl
             {/* Create Workspace Button */}
             <div className="border-t border-border/50 bg-accent/30">
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation(); // Keep sidebar collapsed
                   setIsOpen(false);
                   onCreateClick();
                 }}
