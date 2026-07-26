@@ -9,14 +9,8 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    const saved = localStorage.getItem('sidebar-collapsed')
-    return saved === 'true'
-  })
-
-  useEffect(() => {
-    localStorage.setItem('sidebar-collapsed', String(isCollapsed))
-  }, [isCollapsed])
+  // Always start with sidebar expanded (not collapsed)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const toggleSidebar = () => setIsCollapsed((prev) => !prev)
 
