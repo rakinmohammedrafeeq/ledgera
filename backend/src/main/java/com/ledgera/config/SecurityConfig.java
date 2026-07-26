@@ -80,7 +80,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/diagnostics/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/health", "/healthz", "/api/health", "/api/healthz").permitAll()
+                        .requestMatchers("/health", "/healthz", "/api/health", "/api/healthz", "/api/health/memory").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated()
                 )

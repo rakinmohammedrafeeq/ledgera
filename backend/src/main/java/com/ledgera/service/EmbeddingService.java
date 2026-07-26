@@ -19,6 +19,8 @@ import java.io.IOException;
  * Service for generating text embeddings using local Sentence Transformers model
  * Uses all-MiniLM-L6-v2 - FREE, fast, and perfect for semantic search
  * Model size: ~80MB, runs locally, no API costs
+ * 
+ * MEMORY OPTIMIZATION: Lazy loading - model only loads when first used
  */
 @Service
 public class EmbeddingService {
@@ -29,9 +31,32 @@ public class EmbeddingService {
     
     private ZooModel<String, float[]> model;
     private boolean initialized = false;
+    private boolean disabled = false; // Flag to disable embeddings in low-memory environments
 
     @PostConstruct
-    public void initialize() {
+    public void checkEnvironment() {
+        // Check if we should disable embeddings in production (low memory)
+        String disableEmbeddings = System.getenv("DISABLE_EMBEDDINGS");
+        if ("true".equalsIgnoreCase(disableEmbeddings)) {
+            disabled = true;
+            logger.warn("⚠️ Embeddings disabled via DISABLE_EMBEDDINGS=true (memory optimization)");
+        } else {
+            logger.info("Embedding service ready for lazy initialization (will load on first use)");
+        }
+    }
+
+    /**
+     * Lazy initialization - only loads model when first generateEmbedding is called
+     */
+    private synchronized void initializeIfNeeded() {
+        if (disabled) {
+            return; // Skip initialization if disabled
+        }
+        
+        if (initialized || model != null) {
+            return; // Already initialized
+        }
+        
         try {
             logger.info("Loading embedding model (all-MiniLM-L6-v2)... This may take a minute on first run.");
             
@@ -50,6 +75,7 @@ public class EmbeddingService {
         } catch (ModelNotFoundException | MalformedModelException | IOException e) {
             logger.error("❌ Failed to load embedding model. RAG features will be disabled.", e);
             initialized = false;
+            disabled = true; // Disable after failed attempt
         }
     }
 
@@ -67,8 +93,13 @@ public class EmbeddingService {
      * @return float array of embeddings (384 dimensions)
      */
     public float[] generateEmbedding(String text) {
-        if (!initialized || model == null) {
-            logger.warn("Embedding model not initialized, returning zero vector");
+        // Lazy initialization on first use
+        if (!initialized && !disabled) {
+            initializeIfNeeded();
+        }
+        
+        if (!initialized || model == null || disabled) {
+            logger.warn("Embedding model not available, returning zero vector");
             return new float[EMBEDDING_DIMENSION];
         }
 
