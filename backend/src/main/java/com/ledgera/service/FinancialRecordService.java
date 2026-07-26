@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class FinancialRecordService {
@@ -75,17 +76,27 @@ public class FinancialRecordService {
 
         FinancialRecord savedRecord = recordRepository.save(record);
         
-        // Return immediately - indexing will happen asynchronously or in a separate process
-        // Don't let indexing failures affect record creation
+        // Return immediately - indexing will happen asynchronously
         FinancialRecordResponse response = toResponse(savedRecord);
         
-        // Index the record for vector search in a separate transaction (after commit)
-        try {
-            vectorSearchService.indexFinancialRecord(savedRecord, currentUser.getId(), workspace.getId());
-        } catch (Exception e) {
-            // Log but don't fail the request if indexing fails
-            logger.error("Failed to index financial record for vector search: {}", e.getMessage(), e);
-        }
+        // Index the record for vector search asynchronously (don't block the response)
+        // This runs in a separate thread after the transaction commits
+        Long recordId = savedRecord.getId();
+        Long userId = currentUser.getId();
+        Long workspaceId = workspace.getId();
+        
+        // Schedule async indexing - this happens after response is sent
+        CompletableFuture.runAsync(() -> {
+            try {
+                vectorSearchService.indexFinancialRecord(
+                    recordRepository.findById(recordId).orElse(null), 
+                    userId, 
+                    workspaceId
+                );
+            } catch (Exception e) {
+                logger.error("Failed to index financial record {} for vector search: {}", recordId, e.getMessage());
+            }
+        });
         
         return response;
     }
