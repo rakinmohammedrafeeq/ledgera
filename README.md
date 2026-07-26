@@ -2,6 +2,13 @@
   <img src="public/icon.svg" alt="Ledgera Logo" width="170">
 </p>
 
+<p align="center">
+  <a href="https://zyren.netlify.app"><img src="https://img.shields.io/badge/Demo-Live-success?style=for-the-badge" alt="Live Demo"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Version-1.2.0-orange.svg?style=for-the-badge" alt="Version"/></a>
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg?style=for-the-badge" alt="Contributions"/></a>
+</p>
+
 <div align="center">
   
   [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
