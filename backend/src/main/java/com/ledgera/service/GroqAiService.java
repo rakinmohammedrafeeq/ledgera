@@ -1,4 +1,4 @@
-package com.ledgera.service;
+﻿package com.ledgera.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -198,6 +198,8 @@ public class GroqAiService {
         
         data.append("""
             
+            IMPORTANT: Use the â‚¹ symbol (not INR, not $) for all monetary amounts in your response.
+            
             Provide actionable financial insights in JSON format:
             {
               "summary": "One sentence overview of financial health",
@@ -250,7 +252,7 @@ public class GroqAiService {
             }
             
             String requestJson = objectMapper.writeValueAsString(requestBody);
-            post.setEntity(new StringEntity(requestJson));
+            post.setEntity(new StringEntity(requestJson, java.nio.charset.StandardCharsets.UTF_8));
             
             logger.debug("Sending request to Groq API with model: {}", model);
             long startTime = System.currentTimeMillis();
@@ -258,7 +260,7 @@ public class GroqAiService {
             try (CloseableHttpResponse response = httpClient.execute(post)) {
                 long elapsedTime = System.currentTimeMillis() - startTime;
                 int statusCode = response.getCode();
-                String responseBody = EntityUtils.toString(response.getEntity());
+                String responseBody = EntityUtils.toString(response.getEntity(), java.nio.charset.StandardCharsets.UTF_8);
                 
                 logger.info("Groq API response received in {}ms, status: {}", elapsedTime, statusCode);
                 logger.debug("Groq API response body: {}", responseBody);
@@ -380,4 +382,134 @@ public class GroqAiService {
     private boolean isConfigured() {
         return apiKey != null && !apiKey.isBlank();
     }
+
+    // â”€â”€ Tool-calling API (used by AgentOrchestrationService) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    /**
+     * Calls the Groq chat-completions endpoint with OpenAI-compatible tool definitions.
+     * Supports both text responses (finishReason = "stop") and tool-call responses
+     * (finishReason = "tool_calls").
+     *
+     * <p>The existing {@link #callGroqApi(String, boolean)} method is unchanged.
+     *
+     * @param messages  Full conversation history including system, user, assistant, and tool roles.
+     * @param tools     RBAC-filtered list of tool schemas built by AgentToolRegistry.
+     * @param modelName Groq model to use (e.g. "llama-3.3-70b-versatile").
+     * @return A {@link GroqChatResponse} â€” either a text answer or one or more tool calls.
+     */
+    public GroqChatResponse callGroqApiWithTools(
+            java.util.List<java.util.Map<String, Object>> messages,
+            java.util.List<java.util.Map<String, Object>> tools,
+            String modelName) throws Exception {
+
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new RuntimeException("GROQ_API_KEY not configured â€” agent cannot run");
+        }
+
+        org.apache.hc.client5.http.config.RequestConfig requestConfig =
+                org.apache.hc.client5.http.config.RequestConfig.custom()
+                        .setConnectTimeout(org.apache.hc.core5.util.Timeout.ofSeconds(15))
+                        .setResponseTimeout(org.apache.hc.core5.util.Timeout.ofSeconds(60))
+                        .build();
+
+        try (CloseableHttpClient httpClient = HttpClients.custom()
+                .setDefaultRequestConfig(requestConfig)
+                .build()) {
+
+            HttpPost post = new HttpPost(GROQ_API_URL);
+            post.setHeader("Content-Type", "application/json");
+            post.setHeader("Authorization", "Bearer " + apiKey);
+
+            java.util.Map<String, Object> requestBody = new java.util.HashMap<>();
+            requestBody.put("model", modelName);
+            requestBody.put("messages", messages);
+            requestBody.put("tools", tools);
+            requestBody.put("tool_choice", "auto");
+            requestBody.put("temperature", 0.1);   // Low temperature â†’ deterministic tool selection
+            requestBody.put("max_tokens", 2000);
+
+            String requestJson = objectMapper.writeValueAsString(requestBody);
+            post.setEntity(new StringEntity(requestJson, java.nio.charset.StandardCharsets.UTF_8));
+
+            logger.debug("Groq tool-calling request: model={}, tools={}, messages={}",
+                    modelName, tools.size(), messages.size());
+
+            long start = System.currentTimeMillis();
+            try (CloseableHttpResponse response = httpClient.execute(post)) {
+                long elapsed = System.currentTimeMillis() - start;
+                int statusCode = response.getCode();
+                String responseBody = EntityUtils.toString(response.getEntity(), java.nio.charset.StandardCharsets.UTF_8);
+
+                logger.info("Groq tool-calling response: status={}, elapsed={}ms", statusCode, elapsed);
+                logger.debug("Groq tool-calling body: {}", responseBody);
+
+                if (statusCode != 200) {
+                    throw new RuntimeException(
+                            "Groq API returned status " + statusCode + ": " + responseBody);
+                }
+
+                return parseGroqToolCallingResponse(responseBody);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private GroqChatResponse parseGroqToolCallingResponse(String responseBody) throws Exception {
+        JsonNode root = objectMapper.readTree(responseBody);
+        JsonNode choice = root.path("choices").get(0);
+        if (choice == null) {
+            throw new RuntimeException("Empty choices array in Groq response");
+        }
+
+        String finishReason = choice.path("finish_reason").asText("stop");
+        JsonNode messageNode = choice.path("message");
+
+        // Convert the full assistant message to a plain Map so it can be re-appended
+        // to the conversation history for the next loop iteration.
+        java.util.Map<String, Object> assistantMessage = objectMapper.convertValue(
+                messageNode,
+                new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+
+        if ("tool_calls".equals(finishReason)) {
+            java.util.List<ToolCall> toolCalls = new java.util.ArrayList<>();
+            JsonNode toolCallsNode = messageNode.path("tool_calls");
+            if (toolCallsNode.isArray()) {
+                for (JsonNode tc : toolCallsNode) {
+                    toolCalls.add(new ToolCall(
+                            tc.path("id").asText(),
+                            tc.path("function").path("name").asText(),
+                            tc.path("function").path("arguments").asText()
+                    ));
+                }
+            }
+            return new GroqChatResponse(finishReason, null, assistantMessage, toolCalls);
+        }
+
+        // Plain text answer
+        String textContent = messageNode.path("content").asText("");
+        return new GroqChatResponse(finishReason, textContent, assistantMessage, null);
+    }
+
+    // â”€â”€ Public inner types used by the agent layer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    /**
+     * A single tool/function call returned by the LLM.
+     * {@code argumentsJson} is the raw JSON string from the model â€” parsed by AgentToolExecutorService.
+     */
+    public record ToolCall(String id, String functionName, String argumentsJson) {}
+
+    /**
+     * Unified result from {@link #callGroqApiWithTools}.
+     * Either a plain text answer ({@code finishReason = "stop"}) or one or more tool calls
+     * ({@code finishReason = "tool_calls"}).
+     * {@code assistantMessage} is the raw message Map for re-insertion into the conversation history.
+     */
+    public record GroqChatResponse(
+            String finishReason,
+            String textContent,
+            java.util.Map<String, Object> assistantMessage,
+            java.util.List<ToolCall> toolCalls) {}
 }
+
+
+

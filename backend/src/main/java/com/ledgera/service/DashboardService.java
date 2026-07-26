@@ -1,6 +1,7 @@
 package com.ledgera.service;
 
 import com.ledgera.dto.*;
+import com.ledgera.dto.SpendingSummaryResponse;
 import com.ledgera.entity.FinancialRecord;
 import com.ledgera.entity.User;
 import com.ledgera.entity.Workspace;
@@ -9,11 +10,14 @@ import com.ledgera.enums.TransactionType;
 import com.ledgera.enums.WorkspacePermission;
 import com.ledgera.exception.ForbiddenException;
 import com.ledgera.repository.FinancialRecordRepository;
+import com.ledgera.repository.FinancialRecordSpecification;
 import com.ledgera.repository.UserRepository;
 import com.ledgera.repository.WorkspaceMemberRepository;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import java.time.LocalDate;
 
 import java.math.BigDecimal;
 import java.time.Month;
@@ -162,6 +166,73 @@ public class DashboardService {
         }
 
         return new ArrayList<>(trendMap.values());
+    }
+
+    // ── Agent explicit-workspace read methods ─────────────────────────────────
+    // getDashboardData() is unchanged — these are purely additive for the agent tools.
+
+    /**
+     * Returns income/expense totals and category breakdown for a specific workspace,
+     * optionally filtered to a date range. Backing the agent's get_spending_summary tool.
+     *
+     * <p>Uses recordRepository.findAll(Specification) for date-aware aggregation,
+     * rather than the workspace-total repo methods which have no date params.
+     */
+    public SpendingSummaryResponse getSpendingSummary(
+            Long workspaceId, LocalDate startDate, LocalDate endDate) {
+
+        Specification<FinancialRecord> spec =
+                FinancialRecordSpecification.withFilters(startDate, endDate, null, null, workspaceId);
+
+        java.util.List<FinancialRecord> records = recordRepository.findAll(spec);
+
+        java.math.BigDecimal totalIncome = records.stream()
+                .filter(r -> r.getType() == TransactionType.INCOME)
+                .map(FinancialRecord::getAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        java.math.BigDecimal totalExpenses = records.stream()
+                .filter(r -> r.getType() == TransactionType.EXPENSE)
+                .map(FinancialRecord::getAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        // Expense breakdown by category, sorted desc
+        java.util.Map<String, java.math.BigDecimal> expenseByCategory = records.stream()
+                .filter(r -> r.getType() == TransactionType.EXPENSE)
+                .collect(java.util.stream.Collectors.groupingBy(
+                        FinancialRecord::getCategory,
+                        java.util.stream.Collectors.reducing(
+                                java.math.BigDecimal.ZERO,
+                                FinancialRecord::getAmount,
+                                java.math.BigDecimal::add)));
+
+        java.util.List<CategoryTotal> breakdown = expenseByCategory.entrySet().stream()
+                .map(e -> CategoryTotal.builder()
+                        .category(e.getKey())
+                        .expense(e.getValue())
+                        .income(java.math.BigDecimal.ZERO)
+                        .total(e.getValue())
+                        .build())
+                .sorted(java.util.Comparator.comparing(CategoryTotal::getExpense).reversed())
+                .collect(java.util.stream.Collectors.toList());
+
+        return SpendingSummaryResponse.builder()
+                .totalIncome(totalIncome)
+                .totalExpenses(totalExpenses)
+                .netBalance(totalIncome.subtract(totalExpenses))
+                .categoryBreakdown(breakdown)
+                .startDate(startDate)
+                .endDate(endDate)
+                .recordCount(records.size())
+                .build();
+    }
+
+    /**
+     * Public wrapper that exposes the private buildMonthlyTrends helper for the agent.
+     * Backing the get_monthly_trends tool. Zero logic change — pure visibility promotion.
+     */
+    public java.util.List<MonthlyTrend> getMonthlyTrends(Long workspaceId) {
+        return buildMonthlyTrends(workspaceId);
     }
 
     private List<FinancialRecordResponse> buildRecentTransactions(Long workspaceId) {

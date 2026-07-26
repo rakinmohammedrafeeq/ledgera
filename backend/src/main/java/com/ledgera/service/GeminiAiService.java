@@ -1,4 +1,4 @@
-package com.ledgera.service;
+﻿package com.ledgera.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -260,9 +260,9 @@ public class GeminiAiService {
                - Other (if none fit)
             
             5. Determine if this is INCOME or EXPENSE based on document type:
-               - Salary slips, paychecks, pay statements → INCOME + Salary
-               - Invoices you sent, payment received → INCOME
-               - Purchase receipts, bills you paid → EXPENSE
+               - Salary slips, paychecks, pay statements â†’ INCOME + Salary
+               - Invoices you sent, payment received â†’ INCOME
+               - Purchase receipts, bills you paid â†’ EXPENSE
             
             IMPORTANT: 
             - Use ONLY the exact category names from the lists above
@@ -298,6 +298,8 @@ public class GeminiAiService {
         
         data.append("""
             
+            IMPORTANT: Use the â‚¹ symbol (not INR, not $) for all monetary amounts in your response.
+            
             Provide actionable financial insights in JSON format:
             {
               "summary": "One sentence overview of financial health",
@@ -329,11 +331,11 @@ public class GeminiAiService {
             post.setHeader("Content-Type", "application/json");
             
             String requestBody = objectMapper.writeValueAsString(new GeminiRequest(prompt));
-            post.setEntity(new StringEntity(requestBody));
+            post.setEntity(new StringEntity(requestBody, java.nio.charset.StandardCharsets.UTF_8));
             
             try (CloseableHttpResponse response = httpClient.execute(post)) {
                 int statusCode = response.getCode();
-                String responseBody = EntityUtils.toString(response.getEntity());
+                String responseBody = EntityUtils.toString(response.getEntity(), java.nio.charset.StandardCharsets.UTF_8);
                 
                 // Log the response for debugging
                 logger.debug("Gemini API response status: {}", statusCode);
@@ -363,11 +365,11 @@ public class GeminiAiService {
             String base64Image = Base64.getEncoder().encodeToString(imageData);
             String requestBody = objectMapper.writeValueAsString(
                     new GeminiMultimodalRequest(prompt, base64Image, mimeType));
-            post.setEntity(new StringEntity(requestBody));
+            post.setEntity(new StringEntity(requestBody, java.nio.charset.StandardCharsets.UTF_8));
             
             try (CloseableHttpResponse response = httpClient.execute(post)) {
                 int statusCode = response.getCode();
-                String responseBody = EntityUtils.toString(response.getEntity());
+                String responseBody = EntityUtils.toString(response.getEntity(), java.nio.charset.StandardCharsets.UTF_8);
                 
                 // Log the response for debugging
                 logger.debug("Gemini API response status: {}", statusCode);
@@ -444,13 +446,13 @@ public class GeminiAiService {
             );
             
             String requestJson = objectMapper.writeValueAsString(requestBody);
-            post.setEntity(new StringEntity(requestJson));
+            post.setEntity(new StringEntity(requestJson, java.nio.charset.StandardCharsets.UTF_8));
             
             logger.debug("Sending vision request to Groq API with model: {}", model);
             
             try (CloseableHttpResponse response = httpClient.execute(post)) {
                 int statusCode = response.getCode();
-                String responseBody = EntityUtils.toString(response.getEntity());
+                String responseBody = EntityUtils.toString(response.getEntity(), java.nio.charset.StandardCharsets.UTF_8);
                 
                 logger.debug("Groq API response status: {}", statusCode);
                 logger.debug("Groq API response body: {}", responseBody);
@@ -606,3 +608,5 @@ public class GeminiAiService {
     }
     private record InlineData(String mime_type, String data) {}
 }
+
+

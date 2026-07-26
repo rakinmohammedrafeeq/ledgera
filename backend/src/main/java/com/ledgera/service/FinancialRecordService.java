@@ -22,8 +22,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ledgera.repository.WorkspaceRepository;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Service
 public class FinancialRecordService {
@@ -34,15 +37,18 @@ public class FinancialRecordService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserService currentUserService;
     private final VectorSearchService vectorSearchService;
+    private final WorkspaceRepository workspaceRepository;
 
     public FinancialRecordService(FinancialRecordRepository recordRepository,
                                   WorkspaceMemberRepository workspaceMemberRepository,
                                   CurrentUserService currentUserService,
-                                  VectorSearchService vectorSearchService) {
+                                  VectorSearchService vectorSearchService,
+                                  WorkspaceRepository workspaceRepository) {
         this.recordRepository = recordRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserService = currentUserService;
         this.vectorSearchService = vectorSearchService;
+        this.workspaceRepository = workspaceRepository;
     }
 
     @Transactional
@@ -212,6 +218,117 @@ public class FinancialRecordService {
                 .orElseThrow(() -> new ForbiddenException("You don't have access to this workspace"));
 
         return toResponse(record);
+    }
+
+    // ─── Agent explicit-workspace methods ──────────────────────────────────────
+    // These take workspaceId as a parameter instead of reading currentUser.getCurrentWorkspace().
+    // The implicit getCurrentWorkspace() path is NOT safe for the agent because the user's
+    // persisted current_workspace_id may differ from the workspace they queried the agent about.
+    // Existing methods (createRecord, getAllRecords, etc.) are unchanged.
+
+    /**
+     * Fetches paginated records for a specific workspace.
+     * Called by the agent tool executor for the get_transactions tool.
+     */
+    @Transactional(readOnly = true)
+    public List<FinancialRecordResponse> getAllRecordsForWorkspace(
+            Long workspaceId, User callingUser,
+            LocalDate startDate, LocalDate endDate,
+            String category, TransactionType type,
+            int page, int size) {
+
+        // Defense-in-depth: verify membership (orchestrator already checked, but this is a write path guard)
+        workspaceMemberRepository
+                .findPermissionByWorkspaceAndUser(workspaceId, callingUser.getId())
+                .orElseThrow(() -> new ForbiddenException("You don't have access to workspace " + workspaceId));
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+        Specification<FinancialRecord> spec =
+                FinancialRecordSpecification.withFilters(startDate, endDate, category, type, workspaceId);
+
+        return recordRepository.findAll(spec, pageable).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Creates a record scoped to an explicit workspaceId.
+     * Called by the agent tool executor after user confirmation of create_transaction.
+     */
+    @Transactional
+    public FinancialRecordResponse createRecordForWorkspace(
+            Long workspaceId, User callingUser, FinancialRecordRequest request) {
+
+        WorkspacePermission permission = workspaceMemberRepository
+                .findPermissionByWorkspaceAndUser(workspaceId, callingUser.getId())
+                .orElseThrow(() -> new ForbiddenException("You don't have access to workspace " + workspaceId));
+
+        if (permission == WorkspacePermission.VIEWER) {
+            throw new ForbiddenException("Viewers cannot create records");
+        }
+
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace not found: " + workspaceId));
+
+        FinancialRecord record = FinancialRecord.builder()
+                .amount(request.getAmount())
+                .type(TransactionType.valueOf(request.getType()))
+                .category(request.getCategory())
+                .date(request.getDate())
+                .description(request.getDescription())
+                .user(callingUser)
+                .workspace(workspace)
+                .build();
+
+        FinancialRecord savedRecord = recordRepository.save(record);
+        FinancialRecordResponse response = toResponse(savedRecord);
+
+        // Async vector indexing — same pattern as createRecord()
+        Long recordId = savedRecord.getId();
+        Long userId = callingUser.getId();
+        CompletableFuture.runAsync(() -> {
+            try {
+                vectorSearchService.indexFinancialRecord(
+                        recordRepository.findById(recordId).orElse(null), userId, workspaceId);
+            } catch (Exception e) {
+                logger.error("Agent: failed to index record {} for vector search: {}", recordId, e.getMessage());
+            }
+        });
+
+        return response;
+    }
+
+    /**
+     * Updates a specific record, validating that it belongs to {@code workspaceId}.
+     * Bypasses the currentUser.getCurrentWorkspace() check used by updateRecord().
+     * Called by the agent tool executor after user confirmation of update_transaction.
+     */
+    @Transactional
+    public FinancialRecordResponse updateRecordForWorkspace(
+            Long workspaceId, Long recordId, User callingUser, FinancialRecordRequest request) {
+
+        WorkspacePermission permission = workspaceMemberRepository
+                .findPermissionByWorkspaceAndUser(workspaceId, callingUser.getId())
+                .orElseThrow(() -> new ForbiddenException("You don't have access to workspace " + workspaceId));
+
+        if (permission == WorkspacePermission.VIEWER) {
+            throw new ForbiddenException("Viewers cannot update records");
+        }
+
+        FinancialRecord record = recordRepository.findById(recordId)
+                .orElseThrow(() -> new ResourceNotFoundException("Record not found: " + recordId));
+
+        if (!record.getWorkspace().getId().equals(workspaceId)) {
+            throw new ForbiddenException("Record " + recordId + " does not belong to workspace " + workspaceId);
+        }
+
+        record.setAmount(request.getAmount());
+        record.setType(TransactionType.valueOf(request.getType()));
+        record.setCategory(request.getCategory());
+        record.setDate(request.getDate());
+        record.setDescription(request.getDescription());
+
+        return toResponse(recordRepository.save(record));
     }
 
     private FinancialRecordResponse toResponse(FinancialRecord record) {

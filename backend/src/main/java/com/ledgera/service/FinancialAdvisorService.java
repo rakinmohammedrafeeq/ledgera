@@ -313,6 +313,7 @@ public class FinancialAdvisorService {
         StringBuilder prompt = new StringBuilder();
         
         prompt.append("You are a professional financial advisor having a natural conversation with your client.\n\n");
+        prompt.append("IMPORTANT: Always use the ₹ symbol (not 'INR', not '$') when displaying any monetary amount.\n\n");
         
         prompt.append("CLIENT: ").append(userName).append("\n\n");
         
@@ -375,7 +376,7 @@ public class FinancialAdvisorService {
         long recordCount = records.size();
 
         return String.format(
-                "Total Records: %d\nTotal Income: INR %.2f\nTotal Expenses: INR %.2f\nNet Balance: INR %.2f",
+                "Total Records: %d\nTotal Income: ₹%.2f\nTotal Expenses: ₹%.2f\nNet Balance: ₹%.2f",
                 recordCount, totalIncome, totalExpenses, (totalIncome - totalExpenses)
         );
     }
@@ -506,7 +507,7 @@ public class FinancialAdvisorService {
                 .workspaceId(workspaceId)
                 .insightType("spending")
                 .title("Top Spending Category")
-                .description(String.format("Your highest spending is in %s (INR %.2f).", topCategory, topAmount))
+                .description(String.format("Your highest spending is in %s (₹%.2f).", topCategory, topAmount))
                 .priority("medium")
                 .status("active")
                 .build();
