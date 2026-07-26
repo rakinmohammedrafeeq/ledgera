@@ -159,7 +159,7 @@ export const AdvisorChat = () => {
     <Card className="h-[800px] flex flex-col">
       <CardHeader className="border-b py-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-purple-500" />
+          <Sparkles className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
           <CardTitle>AI Financial Advisor</CardTitle>
         </div>
         <CardDescription>
@@ -219,8 +219,8 @@ export const AdvisorChat = () => {
                   }`}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                      <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                      <Bot className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
                     </div>
                   )}
                   
@@ -288,8 +288,8 @@ export const AdvisorChat = () => {
               ))}
               {chatMutation.isPending && (
                 <div className="flex gap-3 justify-start">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                    <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
                   </div>
                   <div className="bg-muted rounded-lg px-4 py-2">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -311,12 +311,12 @@ export const AdvisorChat = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             disabled={chatMutation.isPending || !currentWorkspace}
-            className="flex-1 bg-background border-input focus-visible:ring-purple-500 h-12"
+            className="flex-1 bg-background border-input focus-visible:ring-primary h-12"
           />
           <Button
             onClick={handleSend}
             disabled={!input.trim() || chatMutation.isPending || !currentWorkspace}
-            className="bg-purple-600 hover:bg-purple-700 text-white h-12 w-12 shrink-0"
+            className="h-12 w-12 shrink-0"
           >
             {chatMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
