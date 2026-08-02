@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, CheckCircle2, Loader2, Timer, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { confirmAgentAction, cancelAgentAction } from '@/api/aiApi'
@@ -64,6 +64,7 @@ export const AgentConfirmModal = ({
   onCancel,
   onExpired,
 }: AgentConfirmModalProps) => {
+  const queryClient = useQueryClient()
   const [secondsLeft, setSecondsLeft] = useState<number>(() =>
     secondsUntil(pendingAction.expiresAt)
   )
@@ -94,6 +95,10 @@ export const AgentConfirmModal = ({
   const confirmMutation = useMutation({
     mutationFn: () => confirmAgentAction({ actionId: pendingAction.actionId }),
     onSuccess: (response) => {
+      // Invalidate all records and dashboard queries to refresh data
+      void queryClient.invalidateQueries({ queryKey: ['records'] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      
       toast.success('Done', { description: 'Transaction saved successfully.' })
       onConfirm(response.answer ?? 'Action completed successfully.')
     },

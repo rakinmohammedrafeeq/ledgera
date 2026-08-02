@@ -75,6 +75,26 @@ public class AiModelFallbackService {
     }
 
     /**
+     * Executes text generation with a caller-selected primary model, followed by
+     * the configured cross-provider fallbacks. This is used by flows that have a
+     * dedicated primary model setting (such as the tool-calling agent).
+     */
+    public <T> T executeWithTextFallback(
+            String primaryModel,
+            ModelProvider primaryProvider,
+            CrossProviderExecutor<T> executor) throws Exception {
+        List<ModelConfig> orderedModels = new ArrayList<>();
+        orderedModels.add(new ModelConfig(primaryModel, primaryProvider));
+        for (ModelConfig configuredModel : textModels) {
+            if (configuredModel.provider != primaryProvider
+                    || !configuredModel.modelName.equals(primaryModel)) {
+                orderedModels.add(configuredModel);
+            }
+        }
+        return executeWithFallback(executor, orderedModels, "TEXT");
+    }
+
+    /**
      * Core fallback logic with cross-provider support
      */
     private <T> T executeWithFallback(CrossProviderExecutor<T> executor, List<ModelConfig> models, String type) throws Exception {

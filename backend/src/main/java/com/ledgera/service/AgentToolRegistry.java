@@ -12,7 +12,7 @@ import java.util.Set;
  * Builds the RBAC-filtered list of tool schemas sent to the LLM for each agent request.
  *
  * <p>VIEWER users receive only the 4 read tools.
- * EDITOR and OWNER users receive all 6 (read + write).
+ * EDITOR and OWNER users receive all 7 (read + write).
  *
  * <p>The schemas match exactly the definitions in the approved tool_schemas.md document.
  * No external state — all schemas are pure immutable Maps.
@@ -20,7 +20,7 @@ import java.util.Set;
 @Component
 public class AgentToolRegistry {
 
-    private static final Set<String> WRITE_TOOLS = Set.of("create_transaction", "update_transaction");
+    private static final Set<String> WRITE_TOOLS = Set.of("create_transaction", "update_transaction", "delete_transaction");
 
     /**
      * Returns the tools the calling user is permitted to use based on their workspace permission.
@@ -140,6 +140,20 @@ public class AgentToolRegistry {
                         "category",       strParam("New category. Optional — omit to leave unchanged."),
                         "date",           strParam("New date (YYYY-MM-DD). Optional — omit to leave unchanged."),
                         "description",    strParam("New description. Optional — omit to leave unchanged.")
+                    ),
+                    "required", List.of("transaction_id", "workspace_id")
+                )),
+            buildTool("delete_transaction",
+                "Deletes an existing financial transaction permanently. "
+                + "This is a DESTRUCTIVE WRITE operation — the user will be asked to confirm before deletion. "
+                + "Once deleted, the transaction cannot be recovered. "
+                + "Do NOT call this unless the user has explicitly asked to delete or remove a transaction. "
+                + "Always show the transaction details in the confirmation summary so the user knows what will be deleted.",
+                Map.of(
+                    "type", "object",
+                    "properties", Map.of(
+                        "transaction_id", intParam("The ID of the transaction to delete."),
+                        "workspace_id",   intParam("The workspace the transaction belongs to.")
                     ),
                     "required", List.of("transaction_id", "workspace_id")
                 ))

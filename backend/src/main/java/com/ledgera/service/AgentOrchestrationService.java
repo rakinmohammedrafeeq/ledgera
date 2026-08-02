@@ -71,7 +71,7 @@ public class AgentOrchestrationService {
         this.currentUserService = currentUserService;
 
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-        this.agentModel = dotenv.get("GROQ_TEXT_MODEL", "llama-3.3-70b-versatile");
+        this.agentModel = dotenv.get("GROQ_TEXT_MODEL", "llama-3.1-70b-versatile");
         logger.info("AgentOrchestrationService initialized. model={}", agentModel);
     }
 
@@ -203,6 +203,9 @@ public class AgentOrchestrationService {
     // ── System prompt ──────────────────────────────────────────────────────────
 
     private String buildSystemPrompt(Long workspaceId) {
+        LocalDate today = LocalDate.now();
+        LocalDate firstOfMonth = today.withDayOfMonth(1);
+        
         return "You are a financial assistant for Ledgera, a workspace-based financial tracking platform.\n"
                 + "Your role is to help users understand their financial data, find transactions, and manage records.\n\n"
                 + "RULES:\n"
@@ -210,13 +213,15 @@ public class AgentOrchestrationService {
                 + "2. For write operations (create/update), call the appropriate tool — the user will confirm before data is saved.\n"
                 + "3. Be concise. Reference actual values from the data you retrieve.\n"
                 + "4. If data is insufficient to answer, say so clearly instead of guessing.\n"
-                + "5. Dates use YYYY-MM-DD format. Today is " + LocalDate.now() + ".\n"
+                + "5. Dates use YYYY-MM-DD format. Today is " + today + ".\n"
                 + "6. The current workspace ID is " + workspaceId + ". "
                 + "You MUST pass this exact integer (" + workspaceId + ") as the workspace_id parameter in every tool call. "
                 + "Never use a string, placeholder, or variable name for workspace_id.\n"
-                + "7. Currency is Indian Rupees. Always use the ₹ symbol (not $ or USD) when displaying any monetary amount in your responses.\n\n"
+                + "7. Currency is Indian Rupees. Always use the ₹ symbol (not $ or USD) when displaying any monetary amount in your responses.\n"
+                + "8. When users ask about spending \"this month\", use start_date: " + firstOfMonth + " and end_date: " + today + ".\n"
+                + "9. When users ask about spending with no time period specified, do NOT provide start_date or end_date to get all-time totals.\n"
+                + "10. For tool parameters, ONLY include the parameters that are needed. If start_date and end_date are not needed, omit them entirely from the function call.\n\n"
                 + "When the user asks about spending, income, or transactions, use the relevant tools first, "
                 + "then synthesize your answer from the returned data.";
-    }
-}
+    }}
 

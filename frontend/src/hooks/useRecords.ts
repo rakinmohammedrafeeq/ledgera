@@ -10,6 +10,12 @@ export function useRecordsQuery(params: RecordsQueryParams) {
     queryKey: queryKeys.records(currentWorkspace?.id ?? null, params),
     queryFn: () => recordsApi.list(params),
     enabled: Boolean(currentWorkspace),
+    // Always refetch when component mounts to ensure fresh data
+    refetchOnMount: 'always',
+    // Refetch when window regains focus
+    refetchOnWindowFocus: true,
+    // Keep previous data while fetching new data for better UX
+    placeholderData: (previousData) => previousData,
   })
 }
 

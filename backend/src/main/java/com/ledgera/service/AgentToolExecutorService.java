@@ -95,6 +95,7 @@ public class AgentToolExecutorService {
             return switch (action.getToolName()) {
                 case "create_transaction" -> handleCreateTransaction(args, workspaceId, currentUser);
                 case "update_transaction" -> handleUpdateTransaction(args, workspaceId, currentUser);
+                case "delete_transaction" -> handleDeleteTransaction(args, workspaceId, currentUser);
                 default -> throw new IllegalStateException("Unknown write tool: " + action.getToolName());
             };
         } catch (Exception e) {
@@ -214,6 +215,37 @@ public class AgentToolExecutorService {
                 "Transaction #%d updated successfully. %s — %s | Amount: %s | Date: %s",
                 updated.getId(), updated.getType(), updated.getCategory(),
                 updated.getAmount(), updated.getDate());
+    }
+
+    private String handleDeleteTransaction(JsonNode args, Long workspaceId, User currentUser) {
+        requireField(args, "transaction_id", "delete_transaction");
+
+        Long transactionId = args.path("transaction_id").asLong();
+
+        // Fetch existing within the @Transactional boundary to safely access lazy workspace
+        // and store details before deletion for confirmation message
+        FinancialRecord existing = financialRecordRepository.findById(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Transaction not found: " + transactionId));
+
+        if (!existing.getWorkspace().getId().equals(workspaceId)) {
+            throw new ForbiddenException(
+                    "Transaction #" + transactionId + " does not belong to workspace " + workspaceId);
+        }
+
+        // Store details before deletion for confirmation message
+        String details = String.format(
+                "%s — %s | Amount: ₹%s | Date: %s%s",
+                existing.getType().name(), existing.getCategory(),
+                existing.getAmount(), existing.getDate(),
+                existing.getDescription() != null ? " | Note: " + existing.getDescription() : "");
+
+        // Delete the transaction (permission check is done inside this method)
+        financialRecordService.deleteRecord(transactionId);
+
+        return String.format(
+                "Transaction #%d deleted successfully. Removed: %s",
+                transactionId, details);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────

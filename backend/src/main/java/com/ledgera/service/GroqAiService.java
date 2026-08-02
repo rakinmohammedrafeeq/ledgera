@@ -24,6 +24,12 @@ import java.util.Map;
 @Service
 public class GroqAiService {
 
+    /**
+     * Groq may reject a completion when the model emits a malformed tool-call
+     * envelope.  These responses are retryable; no tool has been run yet.
+     */
+    private static final int MAX_TOOL_CALL_GENERATION_ATTEMPTS = 5;
+
     private static final Logger logger = LoggerFactory.getLogger(GroqAiService.class);
     private static final String GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
     
@@ -416,41 +422,82 @@ public class GroqAiService {
                 .setDefaultRequestConfig(requestConfig)
                 .build()) {
 
-            HttpPost post = new HttpPost(GROQ_API_URL);
-            post.setHeader("Content-Type", "application/json");
-            post.setHeader("Authorization", "Bearer " + apiKey);
+            for (int attempt = 1; attempt <= MAX_TOOL_CALL_GENERATION_ATTEMPTS; attempt++) {
+                HttpPost post = new HttpPost(GROQ_API_URL);
+                post.setHeader("Content-Type", "application/json");
+                post.setHeader("Authorization", "Bearer " + apiKey);
 
-            java.util.Map<String, Object> requestBody = new java.util.HashMap<>();
-            requestBody.put("model", modelName);
-            requestBody.put("messages", messages);
-            requestBody.put("tools", tools);
-            requestBody.put("tool_choice", "auto");
-            requestBody.put("temperature", 0.1);   // Low temperature â†’ deterministic tool selection
-            requestBody.put("max_tokens", 2000);
+                java.util.Map<String, Object> requestBody = new java.util.HashMap<>();
+                requestBody.put("model", modelName);
+                requestBody.put("messages", messages);
+                requestBody.put("tools", tools);
+                requestBody.put("tool_choice", "auto");
+                // Progressive temperature reduction: start at 0.0 for best accuracy
+                // Further attempts use increasingly strict decoding to avoid malformed output
+                double temperature = Math.max(0.0, 0.15 - (attempt * 0.05));
+                requestBody.put("temperature", temperature);
+                requestBody.put("max_tokens", 2000);
+                // Add parallel tool calls support if available
+                if (attempt > 1) {
+                    requestBody.put("parallel_tool_calls", false); // Disable parallel calls on retry
+                }
 
-            String requestJson = objectMapper.writeValueAsString(requestBody);
-            post.setEntity(new StringEntity(requestJson, java.nio.charset.StandardCharsets.UTF_8));
+                String requestJson = objectMapper.writeValueAsString(requestBody);
+                post.setEntity(new StringEntity(requestJson, java.nio.charset.StandardCharsets.UTF_8));
 
-            logger.debug("Groq tool-calling request: model={}, tools={}, messages={}",
-                    modelName, tools.size(), messages.size());
+                logger.debug("Groq tool-calling request: model={}, tools={}, messages={}, attempt={}",
+                        modelName, tools.size(), messages.size(), attempt);
 
-            long start = System.currentTimeMillis();
-            try (CloseableHttpResponse response = httpClient.execute(post)) {
-                long elapsed = System.currentTimeMillis() - start;
-                int statusCode = response.getCode();
-                String responseBody = EntityUtils.toString(response.getEntity(), java.nio.charset.StandardCharsets.UTF_8);
+                long start = System.currentTimeMillis();
+                try (CloseableHttpResponse response = httpClient.execute(post)) {
+                    long elapsed = System.currentTimeMillis() - start;
+                    int statusCode = response.getCode();
+                    String responseBody = EntityUtils.toString(response.getEntity(), java.nio.charset.StandardCharsets.UTF_8);
 
-                logger.info("Groq tool-calling response: status={}, elapsed={}ms", statusCode, elapsed);
-                logger.debug("Groq tool-calling body: {}", responseBody);
+                    logger.info("Groq tool-calling response: status={}, elapsed={}ms, attempt={}",
+                            statusCode, elapsed, attempt);
+                    logger.debug("Groq tool-calling body: {}", responseBody);
 
-                if (statusCode != 200) {
+                    if (statusCode == 200) {
+                        return parseGroqToolCallingResponse(responseBody);
+                    }
+
+                    if (isToolUseGenerationFailure(statusCode, responseBody)
+                            && attempt < MAX_TOOL_CALL_GENERATION_ATTEMPTS) {
+                        logger.warn("Groq rejected a malformed tool call; retrying with stricter decoding "
+                                + "(attempt {}/{}) - Status: {}, Error: {}", 
+                                attempt + 1, MAX_TOOL_CALL_GENERATION_ATTEMPTS, statusCode, 
+                                responseBody.length() > 200 ? responseBody.substring(0, 200) + "..." : responseBody);
+                        
+                        // Wait briefly before retry to avoid rate limits
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        continue;
+                    }
+
                     throw new RuntimeException(
                             "Groq API returned status " + statusCode + ": " + responseBody);
                 }
-
-                return parseGroqToolCallingResponse(responseBody);
             }
         }
+
+        throw new IllegalStateException("Groq tool-call retry loop exited unexpectedly");
+    }
+
+    private boolean isToolUseGenerationFailure(int statusCode, String responseBody) {
+        boolean isFailure = statusCode == 400
+                && responseBody != null
+                && (responseBody.contains("\"code\":\"tool_use_failed\"") 
+                    || responseBody.contains("Failed to call a function"));
+        
+        if (isFailure) {
+            logger.warn("Detected tool_use_failed error. Response body: {}", responseBody);
+        }
+        
+        return isFailure;
     }
 
     @SuppressWarnings("unchecked")
