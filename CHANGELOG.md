@@ -8,10 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- AI Agent `update_transaction` tool - Update existing transactions with confirmation
+- AI Agent `delete_transaction` tool - Delete transactions permanently with confirmation
+- RBAC-based tool filtering in AgentToolRegistry (Viewers: 4 read tools, Editors/Owners: 7 tools)
+- Enhanced AgentToolExecutorService with update and delete handlers
 - `.gitattributes` for consistent file handling across platforms
 - `CONTRIBUTING.md` with development guidelines and contribution process
 - `SECURITY.md` with security policies and vulnerability reporting process
 - `CHANGELOG.md` to track project changes
+
+### Changed
+- Updated AI Agent from 6 to 7 tools (added update and delete capabilities)
+- Improved AI Agent tool descriptions and parameter documentation
+- Enhanced README.md with comprehensive AI Agent documentation
 
 ## [1.1.0] - 2026-07-27
 
@@ -19,22 +28,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### AI Agent with Tool-Calling
 - Autonomous AI agent loop using Groq Llama 3.3 70B with multi-step reasoning
-- 6 registered agent tools for comprehensive financial operations:
+- 7 registered agent tools for comprehensive financial operations:
   - `get_transactions` - Query and filter financial records with advanced parameters
   - `get_spending_summary` - Analyze spending patterns by category
-  - `search_records` - Full-text search across transaction descriptions
+  - `search_records` - Semantic search across transaction descriptions using pgvector
   - `get_monthly_trends` - Track income/expense trends over time periods
-  - `get_budget_status` - Calculate budget health and provide recommendations
   - `create_transaction` - Create new transactions (requires user confirmation)
+  - `update_transaction` - Update existing transactions (requires user confirmation)
+  - `delete_transaction` - Delete transactions permanently (requires user confirmation)
 - Write-confirmation flow with TTL-based pending action store (5-minute expiry)
+- RBAC-based tool filtering: Viewers get 4 read tools, Editors/Owners get all 7 tools
 - AgentController with `/api/ai/agent`, `/confirm`, and `/cancel` endpoints
 - AgentOrchestrationService for autonomous agent loop execution
 - AgentToolRegistry for centralized tool registration and metadata
-- AgentToolExecutorService for secure tool invocation
+- AgentToolExecutorService for secure tool invocation with permission checks
 - PendingActionStore for managing user confirmations with TTL
 - DTOs: AgentRequest, AgentResponse, ConfirmActionRequest, PendingAction
 - Frontend AgentChat component with tabbed UI (AI Advisor + AI Agent)
 - AgentConfirmModal with overlay-click blocking for secure confirmations
+- GeminiToolCallingService as alternative AI agent provider
 
 #### UI/UX Improvements
 - Tabbed AdvisorPage with AI Advisor and AI Agent tabs on same page
