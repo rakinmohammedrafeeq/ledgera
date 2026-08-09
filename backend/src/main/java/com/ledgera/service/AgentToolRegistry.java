@@ -44,7 +44,10 @@ public class AgentToolRegistry {
             buildTool("get_transactions",
                 "Retrieves a paginated list of financial transactions in a workspace. "
                 + "Supports optional date range, category, and type filters. "
-                + "Returns amount, type (INCOME/EXPENSE), category, date, and description for each record. "
+                + "Returns the transaction ID, amount, type (INCOME/EXPENSE), category, date, and description for each record. "
+                + "IMPORTANT: Always call this first when the user wants to update or delete a transaction "
+                + "(e.g., 'delete last expense', 'update recent transaction') to get the actual transaction IDs. "
+                + "The transactions are ordered by date descending (most recent first). "
                 + "Use page/size to control how many results you fetch.",
                 Map.of(
                     "type", "object",
