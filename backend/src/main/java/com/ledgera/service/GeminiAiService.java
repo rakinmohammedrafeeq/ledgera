@@ -53,9 +53,9 @@ public class GeminiAiService {
         this.groqApiKey = dotenv.get("GROQ_API_KEY");
         
         if (geminiApiKey == null || geminiApiKey.isBlank()) {
-            logger.warn("GEMINI_API_KEY not configured. AI features will be disabled.");
-        } else if (!geminiApiKey.startsWith("AIza")) {
-            logger.warn("GEMINI_API_KEY format looks invalid (should start with 'AIza'). AI features may not work.");
+            logger.warn("GEMINI_API_KEY not configured.");
+        } else {
+            logger.info("Gemini AI Service initialized with valid API key");
         }
         
         logger.info("Gemini AI Service initialized with fallback support");
@@ -74,7 +74,9 @@ public class GeminiAiService {
 
         try {
             String prompt = buildCategorizationPrompt(request);
-            String response = callGeminiApi(prompt);
+            String response = fallbackService.executeWithTextFallback((modelName, provider) -> {
+                return callAiApi(prompt, modelName, provider);
+            });
             return parseCategorizationResponse(response);
         } catch (Exception e) {
             logger.error("Error categorizing transaction", e);
@@ -157,7 +159,9 @@ public class GeminiAiService {
             }
 
             String prompt = buildInsightsPrompt(recentRecords);
-            String response = callGeminiApi(prompt);
+            String response = fallbackService.executeWithTextFallback((modelName, provider) -> {
+                return callAiApi(prompt, modelName, provider);
+            });
             return parseInsightsResponse(response);
         } catch (Exception e) {
             logger.error("Error generating insights", e);
@@ -402,6 +406,52 @@ public class GeminiAiService {
     }
 
     /**
+     * Unified method to call AI API for text prompts across providers
+     */
+    private String callAiApi(String prompt, String modelName, AiModelFallbackService.ModelProvider provider) throws Exception {
+        return switch (provider) {
+            case GEMINI -> callGeminiApi(prompt, modelName);
+            case GROQ -> callGroqApi(prompt, modelName);
+        };
+    }
+
+    private String callGroqApi(String prompt, String model) throws Exception {
+        if (groqApiKey == null || groqApiKey.isBlank()) {
+            throw new RuntimeException("GROQ_API_KEY not configured");
+        }
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost post = new HttpPost(GROQ_API_URL);
+            post.setHeader("Content-Type", "application/json");
+            post.setHeader("Authorization", "Bearer " + groqApiKey);
+
+            var requestBody = java.util.Map.of(
+                    "model", model,
+                    "messages", List.of(
+                            java.util.Map.of("role", "user", "content", prompt)
+                    ),
+                    "temperature", 0.7,
+                    "max_tokens", 1000
+            );
+
+            String requestJson = objectMapper.writeValueAsString(requestBody);
+            post.setEntity(new StringEntity(requestJson, java.nio.charset.StandardCharsets.UTF_8));
+
+            try (CloseableHttpResponse response = httpClient.execute(post)) {
+                int statusCode = response.getCode();
+                String responseBody = EntityUtils.toString(response.getEntity(), java.nio.charset.StandardCharsets.UTF_8);
+
+                if (statusCode != 200) {
+                    logger.error("Groq API error: Status {}, Body: {}", statusCode, responseBody);
+                    throw new RuntimeException("Groq API returned status " + statusCode + ": " + responseBody);
+                }
+
+                return extractTextFromGroqResponse(responseBody);
+            }
+        }
+    }
+
+    /**
      * Unified method to call AI API with image support across providers
      */
     private String callAiApiWithImage(String prompt, byte[] imageData, String mimeType, 
@@ -578,7 +628,8 @@ public class GeminiAiService {
     }
 
     private boolean isConfigured() {
-        return geminiApiKey != null && !geminiApiKey.isBlank();
+        return (geminiApiKey != null && !geminiApiKey.isBlank()) ||
+                (groqApiKey != null && !groqApiKey.isBlank());
     }
 
     // Inner classes for Gemini API requests

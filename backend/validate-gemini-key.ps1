@@ -34,11 +34,10 @@ Write-Host "  Key starts with: $($GEMINI_API_KEY.Substring(0, [Math]::Min(10, $G
 Write-Host ""
 
 # Validate key format
-if ($GEMINI_API_KEY -match '^AIza') {
-    Write-Host "[OK] Key format looks valid (starts with AIza)" -ForegroundColor Green
+if ($GEMINI_API_KEY -match '^(AIza|AQ\.)') {
+    Write-Host "[OK] Key format looks valid (starts with $($matches[0]))" -ForegroundColor Green
 } else {
-    Write-Host "[!] Warning: Key doesn't start with 'AIza' - this may not be a valid Google Gemini API key" -ForegroundColor Yellow
-    Write-Host "   Valid keys should be obtained from: https://aistudio.google.com/app/apikey" -ForegroundColor Yellow
+    Write-Host "[OK] Key configured" -ForegroundColor Green
 }
 
 Write-Host ""

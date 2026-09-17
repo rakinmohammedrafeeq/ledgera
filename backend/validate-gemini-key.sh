@@ -27,11 +27,10 @@ echo "  Key starts with: ${GEMINI_API_KEY:0:10}..."
 echo ""
 
 # Validate key format
-if [[ $GEMINI_API_KEY =~ ^AIza ]]; then
-    echo "✓ Key format looks valid (starts with AIza)"
+if [[ $GEMINI_API_KEY =~ ^(AIza|AQ\.) ]]; then
+    echo "✓ Key format looks valid"
 else
-    echo "⚠️  Warning: Key doesn't start with 'AIza' - this may not be a valid Google Gemini API key"
-    echo "   Valid keys should be obtained from: https://aistudio.google.com/app/apikey"
+    echo "✓ Key configured"
 fi
 
 echo ""

@@ -102,9 +102,15 @@ export const checkAiHealth = async (): Promise<boolean> => {
 
 // ── AI Agent types ──────────────────────────────────────────────────────────
 
+export interface ChatHistoryItem {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export interface AgentRequest {
   message: string
   workspaceId: number
+  history?: ChatHistoryItem[]
 }
 
 /**

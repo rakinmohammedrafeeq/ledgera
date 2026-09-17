@@ -87,10 +87,18 @@ export const AgentChat = () => {
 
     addMessage({ role: 'user', content: text, timestamp: new Date() })
 
+    const history = messages
+      .filter(m => m.role === 'user' || m.role === 'agent')
+      .map(m => ({
+        role: (m.role === 'agent' ? 'assistant' : 'user') as 'user' | 'assistant',
+        content: m.content,
+      }))
+
     try {
       const response = await agentMutation.mutateAsync({
         message: text,
         workspaceId: currentWorkspace.id,
+        history,
       })
 
       if (response.responseType === 'FINAL_ANSWER') {
@@ -122,7 +130,7 @@ export const AgentChat = () => {
         isError: true,
       })
     }
-  }, [currentWorkspace, agentMutation, addMessage])
+  }, [currentWorkspace, agentMutation, addMessage, messages])
 
   // ── Event handlers ────────────────────────────────────────────────────────
 

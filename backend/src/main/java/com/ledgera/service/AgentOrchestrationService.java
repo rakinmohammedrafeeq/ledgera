@@ -71,7 +71,7 @@ public class AgentOrchestrationService {
         this.currentUserService = currentUserService;
 
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-        this.agentModel = dotenv.get("GROQ_TEXT_MODEL", "llama-3.1-70b-versatile");
+        this.agentModel = dotenv.get("GROQ_AGENT_MODEL", dotenv.get("GROQ_TEXT_MODEL", "openai/gpt-oss-120b"));
         logger.info("AgentOrchestrationService initialized. model={}", agentModel);
     }
 
@@ -97,6 +97,19 @@ public class AgentOrchestrationService {
 
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", buildSystemPrompt(workspaceId)));
+
+        if (request.getHistory() != null && !request.getHistory().isEmpty()) {
+            int start = Math.max(0, request.getHistory().size() - 10);
+            for (int i = start; i < request.getHistory().size(); i++) {
+                AgentRequest.ChatMessage item = request.getHistory().get(i);
+                if (item != null && item.getContent() != null && !item.getContent().isBlank()) {
+                    String role = "agent".equalsIgnoreCase(item.getRole()) || "assistant".equalsIgnoreCase(item.getRole())
+                            ? "assistant" : "user";
+                    messages.add(Map.of("role", role, "content", item.getContent()));
+                }
+            }
+        }
+
         messages.add(Map.of("role", "user", "content", request.getMessage()));
 
         return runLoop(messages, permittedTools, workspaceId, currentUser);
@@ -208,20 +221,24 @@ public class AgentOrchestrationService {
         
         return "You are a financial assistant for Ledgera, a workspace-based financial tracking platform.\n"
                 + "Your role is to help users understand their financial data, find transactions, and manage records.\n\n"
-                + "RULES:\n"
-                + "1. Always use tools to fetch real data before answering any data-related question. Never invent amounts or dates.\n"
-                + "2. For write operations (create/update/delete), call the appropriate tool — the user will confirm before data is changed.\n"
-                + "3. Be concise. Reference actual values from the data you retrieve.\n"
-                + "4. If data is insufficient to answer, say so clearly instead of guessing.\n"
-                + "5. Dates use YYYY-MM-DD format. Today is " + today + ".\n"
-                + "6. The current workspace ID is " + workspaceId + ". "
+                + "CRITICAL EXECUTION RULES:\n"
+                + "1. YOU MUST CALL TOOLS DIRECTLY. Whenever the user asks to add, record, create, update, or delete a transaction, "
+                + "OR whenever the user confirms with 'yes', 'confirm', 'proceed', 'do it', etc., YOU MUST DIRECTLY CALL THE APPROPRIATE TOOL (create_transaction, update_transaction, delete_transaction).\n"
+                + "2. NEVER ASK FOR CONFIRMATION IN TEXT. Never say 'Would you like me to create this?', 'Shall I proceed?', 'Please confirm', or similar phrases. "
+                + "The Ledgera platform automatically catches your tool call and renders an interactive confirmation modal for the user. "
+                + "Therefore, calling the tool IS safe, required, and expected immediately.\n"
+                + "3. Always use tools to fetch real data before answering any data-related question. Never invent amounts or dates.\n"
+                + "4. Be concise. Reference actual values from the data you retrieve.\n"
+                + "5. If data is insufficient to answer, say so clearly instead of guessing.\n"
+                + "6. Dates use YYYY-MM-DD format. Today is " + today + ".\n"
+                + "7. The current workspace ID is " + workspaceId + ". "
                 + "You MUST pass this exact integer (" + workspaceId + ") as the workspace_id parameter in every tool call. "
                 + "Never use a string, placeholder, or variable name for workspace_id.\n"
-                + "7. Currency is Indian Rupees. Always use the ₹ symbol (not $ or USD) when displaying any monetary amount in your responses.\n"
-                + "8. When users ask about spending \"this month\", use start_date: " + firstOfMonth + " and end_date: " + today + ".\n"
-                + "9. When users ask about spending with no time period specified, do NOT provide start_date or end_date to get all-time totals.\n"
-                + "10. For tool parameters, ONLY include the parameters that are needed. If start_date and end_date are not needed, omit them entirely from the function call.\n"
-                + "11. CRITICAL: When deleting or updating transactions, you MUST use the actual numeric transaction_id from the database. "
+                + "8. Currency is Indian Rupees. Always use the ₹ symbol (not $ or USD) when displaying any monetary amount in your responses.\n"
+                + "9. When users ask about spending \"this month\", use start_date: " + firstOfMonth + " and end_date: " + today + ".\n"
+                + "10. When users ask about spending with no time period specified, do NOT provide start_date or end_date to get all-time totals.\n"
+                + "11. For tool parameters, ONLY include the parameters that are needed. If start_date and end_date are not needed, omit them entirely from the function call.\n"
+                + "12. When deleting or updating transactions, you MUST use the actual numeric transaction_id from the database. "
                 + "If the user says \"delete the last expense\" or \"update the recent transaction\", you must:\n"
                 + "    a) First call get_transactions with appropriate filters to find the transaction(s)\n"
                 + "    b) Extract the numeric ID from the results\n"

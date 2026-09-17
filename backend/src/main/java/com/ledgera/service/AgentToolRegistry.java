@@ -109,8 +109,8 @@ public class AgentToolRegistry {
         return List.of(
             buildTool("create_transaction",
                 "Creates a new financial transaction in the workspace. "
-                + "This is a WRITE operation — the user will be asked to confirm before anything is saved. "
-                + "Do NOT call this unless the user has explicitly asked to add or record a transaction. "
+                + "Call this tool directly whenever the user asks to add or record an income or expense, or agrees/says 'yes' to creating one. "
+                + "Do NOT ask the user for confirmation in text — the system will automatically prompt the user with an interactive confirmation modal before anything is saved. "
                 + "Valid INCOME categories: Salary, Freelance, Business, Investment, Bonus, Interest, "
                 + "Rental Income, Refund, Other. "
                 + "Valid EXPENSE categories: Food, Groceries, Shopping, Transportation, Fuel, Bills, Rent, "
@@ -130,9 +130,9 @@ public class AgentToolRegistry {
                 )),
             buildTool("update_transaction",
                 "Updates one or more fields on an existing financial transaction. "
-                + "This is a WRITE operation — the user will be asked to confirm before anything changes. "
-                + "Only provide fields you want to change; omitted fields keep their current values. "
-                + "Do NOT call this unless the user has explicitly asked to edit or correct a transaction.",
+                + "Call this tool directly when the user asks to edit, update, or correct a transaction, or confirms an update. "
+                + "Do NOT ask the user for confirmation in text — the system will automatically prompt the user with an interactive confirmation modal before anything changes. "
+                + "Only provide fields you want to change; omitted fields keep their current values.",
                 Map.of(
                     "type", "object",
                     "properties", Map.of(
@@ -148,10 +148,8 @@ public class AgentToolRegistry {
                 )),
             buildTool("delete_transaction",
                 "Deletes an existing financial transaction permanently. "
-                + "This is a DESTRUCTIVE WRITE operation — the user will be asked to confirm before deletion. "
-                + "Once deleted, the transaction cannot be recovered. "
-                + "Do NOT call this unless the user has explicitly asked to delete or remove a transaction. "
-                + "Always show the transaction details in the confirmation summary so the user knows what will be deleted.",
+                + "Call this tool directly when the user asks to delete or remove a transaction, or confirms deletion. "
+                + "Do NOT ask the user for confirmation in text — the system will automatically prompt the user with an interactive confirmation modal before deletion.",
                 Map.of(
                     "type", "object",
                     "properties", Map.of(

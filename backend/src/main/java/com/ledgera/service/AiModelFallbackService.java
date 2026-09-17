@@ -7,129 +7,213 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
- * Service for managing AI model fallbacks on rate limits
- * Supports cross-provider fallbacks between Gemini and Groq
- * Automatically tries fallback models when primary models hit rate limits
+ * Service for managing AI model fallbacks across Gemini and Groq providers.
+ *
+ * <p>Supports bidirectional cross-provider fallback chains:
+ * <ul>
+ *   <li><b>Groq-first</b>: Tries Groq text/vision models in order, and if all Groq models fail,
+ *       automatically shifts to Gemini models and tries all Gemini fallbacks in order.
+ *       Used by {@link GroqAiService} for advisor chat, insights, and categorization.</li>
+ *   <li><b>Gemini-first</b>: Tries Gemini models in order, and if all Gemini models fail,
+ *       automatically shifts to Groq models and tries all Groq fallbacks in order.
+ *       Used by {@link GeminiAiService} for receipt OCR and image processing.</li>
+ * </ul>
+ *
+ * <p>A model is skipped (and the next fallback tried) on:
+ * rate limits (429), quota limits, 404 / model_not_found / decommissioned errors,
+ * 503 / 500 / service unavailable errors, and connection timeouts.
  */
 @Service
 public class AiModelFallbackService {
 
     private static final Logger logger = LoggerFactory.getLogger(AiModelFallbackService.class);
 
-    private final List<ModelConfig> visionModels;
-    private final List<ModelConfig> textModels;
+    // ── Gemini-first combined lists (Gemini models -> Groq models) ───────────
+    private final List<ModelConfig> geminiFirstTextModels;
+    private final List<ModelConfig> geminiFirstVisionModels;
+
+    // ── Groq-first combined lists (Groq models -> Gemini models) ─────────────
+    private final List<ModelConfig> groqFirstTextModels;
+    private final List<ModelConfig> groqFirstVisionModels;
+
+    // ── Tool calling models (for agents) ─────────────────────────────────────
+    private final List<ModelConfig> toolCallingModels;
+
     private final int maxRetryAttempts;
     private final long retryDelayMs;
 
     public AiModelFallbackService() {
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
 
-        // Load vision models (support images) - Gemini + Groq
-        this.visionModels = new ArrayList<>();
-        addModelIfPresent(visionModels, dotenv, "GEMINI_VISION_PRIMARY", ModelProvider.GEMINI);
-        addModelIfPresent(visionModels, dotenv, "GEMINI_VISION_FALLBACK1", ModelProvider.GEMINI);
-        addModelIfPresent(visionModels, dotenv, "GEMINI_VISION_FALLBACK2", ModelProvider.GEMINI);
-        addModelIfPresent(visionModels, dotenv, "GEMINI_VISION_FALLBACK3", ModelProvider.GEMINI);
-        addModelIfPresent(visionModels, dotenv, "GROQ_VISION_MODEL", ModelProvider.GROQ);
-
-        // Load text-only models - Gemini + Groq
-        this.textModels = new ArrayList<>();
-        addModelIfPresent(textModels, dotenv, "GEMINI_TEXT_PRIMARY", ModelProvider.GEMINI);
-        addModelIfPresent(textModels, dotenv, "GEMINI_TEXT_FALLBACK1", ModelProvider.GEMINI);
-        addModelIfPresent(textModels, dotenv, "GEMINI_TEXT_FALLBACK2", ModelProvider.GEMINI);
-        addModelIfPresent(textModels, dotenv, "GEMINI_TEXT_FALLBACK3", ModelProvider.GEMINI);
-        addModelIfPresent(textModels, dotenv, "GROQ_TEXT_MODEL", ModelProvider.GROQ);
-
-        // Retry configuration
-        this.maxRetryAttempts = Integer.parseInt(dotenv.get("AI_RETRY_ATTEMPTS", "3"));
-        this.retryDelayMs = Long.parseLong(dotenv.get("AI_RETRY_DELAY_MS", "1000"));
-
-        logger.info("AI Model Fallback Service initialized with cross-provider support");
-        logger.info("Vision models: {}", visionModels);
-        logger.info("Text models: {}", textModels);
-        logger.info("Max retry attempts: {}", maxRetryAttempts);
-    }
-
-    private void addModelIfPresent(List<ModelConfig> list, Dotenv dotenv, String key, ModelProvider provider) {
-        String value = dotenv.get(key);
-        if (value != null && !value.isEmpty() && !value.startsWith("your_")) {
-            list.add(new ModelConfig(value, provider));
+        // ── 1. Load individual Gemini models ─────────────────────────────────
+        List<ModelConfig> geminiText = new ArrayList<>();
+        addIfPresent(geminiText, dotenv, "GEMINI_TEXT_PRIMARY",   ModelProvider.GEMINI);
+        addIfPresent(geminiText, dotenv, "GEMINI_TEXT_FALLBACK1", ModelProvider.GEMINI);
+        addIfPresent(geminiText, dotenv, "GEMINI_TEXT_FALLBACK2", ModelProvider.GEMINI);
+        addIfPresent(geminiText, dotenv, "GEMINI_TEXT_FALLBACK3", ModelProvider.GEMINI);
+        addIfPresent(geminiText, dotenv, "GEMINI_TEXT_FALLBACK4", ModelProvider.GEMINI);
+        if (geminiText.isEmpty()) {
+            geminiText.add(new ModelConfig("gemini-3.6-flash", ModelProvider.GEMINI));
+            geminiText.add(new ModelConfig("gemini-flash-latest", ModelProvider.GEMINI));
+            geminiText.add(new ModelConfig("gemini-3.8-flash", ModelProvider.GEMINI));
+            geminiText.add(new ModelConfig("gemini-3.5-flash-lite", ModelProvider.GEMINI));
+            geminiText.add(new ModelConfig("gemini-3.1-flash-lite", ModelProvider.GEMINI));
         }
+
+        List<ModelConfig> geminiVision = new ArrayList<>();
+        addIfPresent(geminiVision, dotenv, "GEMINI_VISION_PRIMARY",   ModelProvider.GEMINI);
+        addIfPresent(geminiVision, dotenv, "GEMINI_VISION_FALLBACK1", ModelProvider.GEMINI);
+        addIfPresent(geminiVision, dotenv, "GEMINI_VISION_FALLBACK2", ModelProvider.GEMINI);
+        addIfPresent(geminiVision, dotenv, "GEMINI_VISION_FALLBACK3", ModelProvider.GEMINI);
+        addIfPresent(geminiVision, dotenv, "GEMINI_VISION_FALLBACK4", ModelProvider.GEMINI);
+        if (geminiVision.isEmpty()) {
+            geminiVision.add(new ModelConfig("gemini-3.6-flash", ModelProvider.GEMINI));
+            geminiVision.add(new ModelConfig("gemini-flash-latest", ModelProvider.GEMINI));
+            geminiVision.add(new ModelConfig("gemini-3.8-flash", ModelProvider.GEMINI));
+            geminiVision.add(new ModelConfig("gemini-3.5-flash-lite", ModelProvider.GEMINI));
+            geminiVision.add(new ModelConfig("gemini-3.1-flash-lite", ModelProvider.GEMINI));
+        }
+
+        // ── 2. Load individual Groq models ───────────────────────────────────
+        List<ModelConfig> groqText = new ArrayList<>();
+        addIfPresent(groqText, dotenv, "GROQ_TEXT_MODEL",     ModelProvider.GROQ);
+        addIfPresent(groqText, dotenv, "GROQ_TEXT_FALLBACK1", ModelProvider.GROQ);
+        addIfPresent(groqText, dotenv, "GROQ_TEXT_FALLBACK2", ModelProvider.GROQ);
+        addIfPresent(groqText, dotenv, "GROQ_TEXT_FALLBACK3", ModelProvider.GROQ);
+        addIfPresent(groqText, dotenv, "GROQ_TEXT_FALLBACK4", ModelProvider.GROQ);
+        if (groqText.isEmpty()) {
+            groqText.add(new ModelConfig("groq/compound-mini", ModelProvider.GROQ));
+            groqText.add(new ModelConfig("openai/gpt-oss-120b", ModelProvider.GROQ));
+            groqText.add(new ModelConfig("openai/gpt-oss-20b", ModelProvider.GROQ));
+            groqText.add(new ModelConfig("qwen/qwen3.8-27b", ModelProvider.GROQ));
+            groqText.add(new ModelConfig("groq/compound", ModelProvider.GROQ));
+        }
+
+        List<ModelConfig> groqVision = new ArrayList<>();
+        addIfPresent(groqVision, dotenv, "GROQ_VISION_MODEL",     ModelProvider.GROQ);
+        addIfPresent(groqVision, dotenv, "GROQ_VISION_FALLBACK1", ModelProvider.GROQ);
+        addIfPresent(groqVision, dotenv, "GROQ_VISION_FALLBACK2", ModelProvider.GROQ);
+        if (groqVision.isEmpty()) {
+            groqVision.add(new ModelConfig("qwen/qwen3.8-27b", ModelProvider.GROQ));
+        }
+
+        // ── 3. Load Groq Tool-calling models ─────────────────────────────────
+        List<ModelConfig> tools = new ArrayList<>();
+        addIfPresent(tools, dotenv, "GROQ_AGENT_MODEL",     ModelProvider.GROQ);
+        addIfPresent(tools, dotenv, "GROQ_AGENT_FALLBACK1", ModelProvider.GROQ);
+        addIfPresent(tools, dotenv, "GROQ_AGENT_FALLBACK2", ModelProvider.GROQ);
+        if (tools.isEmpty()) {
+            tools.add(new ModelConfig("openai/gpt-oss-120b", ModelProvider.GROQ));
+            tools.add(new ModelConfig("openai/gpt-oss-20b", ModelProvider.GROQ));
+            tools.add(new ModelConfig("qwen/qwen3.8-27b", ModelProvider.GROQ));
+        }
+        this.toolCallingModels = tools;
+
+        // ── 4. Build combined fallback lists ─────────────────────────────────
+        // Gemini-first: all Gemini models, then all Groq models
+        this.geminiFirstTextModels   = combined(geminiText, groqText);
+        this.geminiFirstVisionModels = combined(geminiVision, groqVision);
+
+        // Groq-first: all Groq models, then all Gemini models
+        this.groqFirstTextModels   = combined(groqText, geminiText);
+        this.groqFirstVisionModels = combined(groqVision, geminiVision);
+
+        // ── 5. Retry configuration ───────────────────────────────────────────
+        this.maxRetryAttempts = Integer.parseInt(dotenv.get("AI_RETRY_ATTEMPTS", "3"));
+        this.retryDelayMs     = Long.parseLong(dotenv.get("AI_RETRY_DELAY_MS", "500"));
+
+        logger.info("AiModelFallbackService initialized successfully");
+        logger.info("  Groq-first Text Chain  ({} models): {}", groqFirstTextModels.size(), groqFirstTextModels);
+        logger.info("  Groq-first Vision Chain({} models): {}", groqFirstVisionModels.size(), groqFirstVisionModels);
+        logger.info("  Gemini-first Text Chain({} models): {}", geminiFirstTextModels.size(), geminiFirstTextModels);
+        logger.info("  Gemini-first Vision Chain({} models): {}", geminiFirstVisionModels.size(), geminiFirstVisionModels);
+        logger.info("  Agent Tool Models: {}", toolCallingModels);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Public execution methods
+    // ─────────────────────────────────────────────────────────────────────────
+
     /**
-     * Execute with automatic fallback on rate limits (Vision models)
+     * Groq-first text fallback chain (used by GroqAiService):
+     * Tries all configured Groq models; if all fail, smoothly shifts to Gemini models.
      */
-    public <T> T executeWithVisionFallback(CrossProviderExecutor<T> executor) throws Exception {
-        return executeWithFallback(executor, visionModels, "VISION");
+    public <T> T executeWithGroqFirstTextFallback(CrossProviderExecutor<T> executor) throws Exception {
+        return executeWithFallback(executor, groqFirstTextModels, "GROQ-FIRST-TEXT");
     }
 
     /**
-     * Execute with automatic fallback on rate limits (Text models)
+     * Groq-first vision fallback chain:
+     * Tries all Groq vision models; if all fail, smoothly shifts to Gemini vision models.
+     */
+    public <T> T executeWithGroqFirstVisionFallback(CrossProviderExecutor<T> executor) throws Exception {
+        return executeWithFallback(executor, groqFirstVisionModels, "GROQ-FIRST-VISION");
+    }
+
+    /**
+     * Gemini-first text fallback chain (used by GeminiAiService):
+     * Tries all configured Gemini models; if all fail, smoothly shifts to Groq models.
      */
     public <T> T executeWithTextFallback(CrossProviderExecutor<T> executor) throws Exception {
-        return executeWithFallback(executor, textModels, "TEXT");
+        return executeWithFallback(executor, geminiFirstTextModels, "GEMINI-FIRST-TEXT");
     }
 
     /**
-     * Executes text generation with a caller-selected primary model, followed by
-     * the configured cross-provider fallbacks. This is used by flows that have a
-     * dedicated primary model setting (such as the tool-calling agent).
+     * Gemini-first vision fallback chain (used for Receipt OCR):
+     * Tries all configured Gemini vision models; if all fail, smoothly shifts to Groq vision models.
      */
-    public <T> T executeWithTextFallback(
-            String primaryModel,
-            ModelProvider primaryProvider,
-            CrossProviderExecutor<T> executor) throws Exception {
-        List<ModelConfig> orderedModels = new ArrayList<>();
-        orderedModels.add(new ModelConfig(primaryModel, primaryProvider));
-        for (ModelConfig configuredModel : textModels) {
-            if (configuredModel.provider != primaryProvider
-                    || !configuredModel.modelName.equals(primaryModel)) {
-                orderedModels.add(configuredModel);
-            }
-        }
-        return executeWithFallback(executor, orderedModels, "TEXT");
+    public <T> T executeWithVisionFallback(CrossProviderExecutor<T> executor) throws Exception {
+        return executeWithFallback(executor, geminiFirstVisionModels, "GEMINI-FIRST-VISION");
     }
 
     /**
-     * Core fallback logic with cross-provider support
+     * Tool-calling fallback chain for agent execution:
+     * Tries tool-capable models (openai/gpt-oss-120b -> openai/gpt-oss-20b -> qwen/qwen3.8-27b).
      */
-    private <T> T executeWithFallback(CrossProviderExecutor<T> executor, List<ModelConfig> models, String type) throws Exception {
-        if (models.isEmpty()) {
-            throw new IllegalStateException("No " + type + " models configured");
+    public <T> T executeWithAgentToolFallback(CrossProviderExecutor<T> executor) throws Exception {
+        return executeWithFallback(executor, toolCallingModels, "AGENT-TOOL-CALLING");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Core fallback loop
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private <T> T executeWithFallback(
+            CrossProviderExecutor<T> executor,
+            List<ModelConfig> models,
+            String label) throws Exception {
+
+        if (models == null || models.isEmpty()) {
+            throw new IllegalStateException("No models configured for chain: " + label);
         }
 
         Exception lastException = null;
 
         for (int i = 0; i < models.size(); i++) {
-            ModelConfig modelConfig = models.get(i);
-            String modelLabel = i == 0 ? "PRIMARY" : "FALLBACK" + i;
+            ModelConfig cfg = models.get(i);
+            String modelLabel = (i == 0) ? "PRIMARY" : "FALLBACK-" + i;
 
-            logger.info("Trying {} {} model: {} (provider: {})", type, modelLabel, modelConfig.modelName, modelConfig.provider);
+            logger.info("[{}] Attempting {} model: {} (provider: {})",
+                    label, modelLabel, cfg.modelName, cfg.provider);
 
             try {
-                T result = executor.execute(modelConfig.modelName, modelConfig.provider);
-                
+                T result = executor.execute(cfg.modelName, cfg.provider);
                 if (i > 0) {
-                    logger.warn("Successfully used {} {} ({}) after primary failed", 
-                            modelLabel, modelConfig.modelName, modelConfig.provider);
+                    logger.info("[{}] Fallback SUCCESS: using {} model {} ({})",
+                            label, modelLabel, cfg.modelName, cfg.provider);
                 }
-                
                 return result;
 
             } catch (Exception e) {
                 lastException = e;
-                String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+                String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
 
-                // Check if it's a rate limit error
-                if (isRateLimitError(errorMessage)) {
-                    logger.warn("{} {} model rate limited: {} ({}). Trying fallback...", 
-                            type, modelLabel, modelConfig.modelName, modelConfig.provider);
-                    
-                    // Wait before trying next model
+                if (isFallbackWorthy(msg)) {
+                    logger.warn("[{}] {} model {} ({}) failed with recoverable error: {}. Trying next fallback...",
+                            label, modelLabel, cfg.modelName, cfg.provider, truncate(e.getMessage(), 250));
+
                     if (i < models.size() - 1) {
                         try {
                             Thread.sleep(retryDelayMs);
@@ -140,95 +224,153 @@ public class AiModelFallbackService {
                     continue;
                 }
 
-                // Check if it's a quota exceeded error
-                if (isQuotaExceededError(errorMessage)) {
-                    logger.error("{} {} model quota exceeded: {} ({}). Trying fallback...", 
-                            type, modelLabel, modelConfig.modelName, modelConfig.provider);
-                    
-                    if (i < models.size() - 1) {
-                        try {
-                            Thread.sleep(retryDelayMs);
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                    continue;
-                }
-
-                // For other errors, fail immediately (don't waste quota on other models)
-                logger.error("{} {} model failed with non-rate-limit error: {} ({})", 
-                        type, modelLabel, e.getMessage(), modelConfig.provider);
+                // If it's a non-fallback-worthy error (e.g. fatal programming bug), log and rethrow
+                logger.error("[{}] {} model {} ({}) failed with non-recoverable error: {}",
+                        label, modelLabel, cfg.modelName, cfg.provider, e.getMessage());
                 throw e;
             }
         }
 
-        // All models failed
-        logger.error("All {} models exhausted. Last error: {}", type, 
-                lastException != null ? lastException.getMessage() : "Unknown");
-        throw new Exception("All " + type + " models failed. Last error: " + 
-                (lastException != null ? lastException.getMessage() : "Unknown"), lastException);
+        logger.error("[{}] All {} models exhausted. Last error: {}",
+                label, models.size(), lastException != null ? lastException.getMessage() : "unknown");
+        throw new Exception("All models in chain " + label + " failed. Last error: " +
+                (lastException != null ? lastException.getMessage() : "unknown"), lastException);
     }
 
-    /**
-     * Check if error is a rate limit error
-     */
-    private boolean isRateLimitError(String errorMessage) {
-        return errorMessage.contains("rate limit") ||
-               errorMessage.contains("429") ||
-               errorMessage.contains("too many requests") ||
-               errorMessage.contains("resource_exhausted") ||
-               errorMessage.contains("rate_limit_exceeded");
+    // ─────────────────────────────────────────────────────────────────────────
+    // Error classification
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private boolean isFallbackWorthy(String msg) {
+        return isRateLimitError(msg)
+                || isQuotaExceededError(msg)
+                || isModelNotFoundError(msg)
+                || isServerError(msg)
+                || isConnectionError(msg);
     }
 
-    /**
-     * Check if error is a quota exceeded error
-     */
-    private boolean isQuotaExceededError(String errorMessage) {
-        return errorMessage.contains("quota") ||
-               errorMessage.contains("quota exceeded") ||
-               errorMessage.contains("insufficient quota") ||
-               errorMessage.contains("quota_exceeded");
+    private boolean isRateLimitError(String msg) {
+        return msg.contains("rate limit")
+                || msg.contains("429")
+                || msg.contains("too many requests")
+                || msg.contains("resource_exhausted")
+                || msg.contains("rate_limit_exceeded");
     }
 
-    /**
-     * Get primary vision model config
-     */
+    private boolean isQuotaExceededError(String msg) {
+        return msg.contains("quota")
+                || msg.contains("quota exceeded")
+                || msg.contains("insufficient quota")
+                || msg.contains("quota_exceeded");
+    }
+
+    private boolean isModelNotFoundError(String msg) {
+        return msg.contains("404")
+                || msg.contains("model_not_found")
+                || msg.contains("does not exist")
+                || msg.contains("model not found")
+                || msg.contains("not found")
+                || msg.contains("no access to it")
+                || msg.contains("no longer available")
+                || msg.contains("is not supported")
+                || msg.contains("invalid_request_error")
+                || msg.contains("cannot find model");
+    }
+
+    private boolean isServerError(String msg) {
+        return msg.contains("503")
+                || msg.contains("502")
+                || msg.contains("504")
+                || msg.contains("500")
+                || msg.contains("service unavailable")
+                || msg.contains("unavailable")
+                || msg.contains("overloaded")
+                || msg.contains("bad gateway")
+                || msg.contains("gateway timeout")
+                || msg.contains("internal server error");
+    }
+
+    private boolean isConnectionError(String msg) {
+        return msg.contains("timeout")
+                || msg.contains("timed out")
+                || msg.contains("connection refused")
+                || msg.contains("connection reset")
+                || msg.contains("broken pipe");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Accessor helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
     public ModelConfig getPrimaryVisionModel() {
-        return visionModels.isEmpty() ? new ModelConfig("gemini-3.6-flash", ModelProvider.GEMINI) : visionModels.get(0);
+        return geminiFirstVisionModels.isEmpty()
+                ? new ModelConfig("gemini-3.6-flash", ModelProvider.GEMINI)
+                : geminiFirstVisionModels.get(0);
     }
 
-    /**
-     * Get primary text model config
-     */
     public ModelConfig getPrimaryTextModel() {
-        return textModels.isEmpty() ? new ModelConfig("gemini-3.5-flash-lite", ModelProvider.GEMINI) : textModels.get(0);
+        return geminiFirstTextModels.isEmpty()
+                ? new ModelConfig("gemini-3.6-flash", ModelProvider.GEMINI)
+                : geminiFirstTextModels.get(0);
     }
 
-    /**
-     * Check if vision models are configured
-     */
-    public boolean hasVisionModels() {
-        return !visionModels.isEmpty();
+    public ModelConfig getPrimaryGroqTextModel() {
+        return groqFirstTextModels.isEmpty()
+                ? new ModelConfig("groq/compound-mini", ModelProvider.GROQ)
+                : groqFirstTextModels.get(0);
     }
 
-    /**
-     * Check if text models are configured
-     */
-    public boolean hasTextModels() {
-        return !textModels.isEmpty();
+    public List<ModelConfig> getGroqFirstTextModels() {
+        return groqFirstTextModels;
     }
 
-    /**
-     * Functional interface for cross-provider model execution
-     */
+    public List<ModelConfig> getGeminiFirstTextModels() {
+        return geminiFirstTextModels;
+    }
+
+    public List<ModelConfig> getGroqFirstVisionModels() {
+        return groqFirstVisionModels;
+    }
+
+    public List<ModelConfig> getGeminiFirstVisionModels() {
+        return geminiFirstVisionModels;
+    }
+
+    public List<ModelConfig> getToolCallingModels() {
+        return toolCallingModels;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Internal utilities
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void addIfPresent(List<ModelConfig> list, Dotenv dotenv, String key, ModelProvider provider) {
+        String value = dotenv.get(key);
+        if (value != null && !value.isBlank() && !value.startsWith("your_")) {
+            list.add(new ModelConfig(value.trim(), provider));
+        }
+    }
+
+    private List<ModelConfig> combined(List<ModelConfig> first, List<ModelConfig> second) {
+        List<ModelConfig> result = new ArrayList<>(first);
+        result.addAll(second);
+        return result;
+    }
+
+    private String truncate(String s, int max) {
+        if (s == null) return "null";
+        return s.length() > max ? s.substring(0, max) + "..." : s;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Public types
+    // ─────────────────────────────────────────────────────────────────────────
+
     @FunctionalInterface
     public interface CrossProviderExecutor<T> {
         T execute(String modelName, ModelProvider provider) throws Exception;
     }
 
-    /**
-     * Model configuration with provider info
-     */
     public static class ModelConfig {
         public final String modelName;
         public final ModelProvider provider;
@@ -240,13 +382,10 @@ public class AiModelFallbackService {
 
         @Override
         public String toString() {
-            return modelName + " (" + provider + ")";
+            return modelName + "(" + provider + ")";
         }
     }
 
-    /**
-     * Supported AI providers
-     */
     public enum ModelProvider {
         GEMINI,
         GROQ
