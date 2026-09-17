@@ -47,11 +47,16 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8080}/healthz || exit 1
 
-# JVM optimization flags
-ENV JAVA_OPTS="-XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
+# JVM optimization flags for production (512MB RAM constraint on Render)
+ENV MALLOC_ARENA_MAX=2
+ENV JAVA_OPTS="-Xms128m \
+    -Xmx320m \
     -XX:+UseG1GC \
-    -Djava.security.egd=file:/dev/./urandom"
+    -XX:MaxGCPauseMillis=100 \
+    -XX:+UseStringDeduplication \
+    -XX:+OptimizeStringConcat \
+    -Djava.security.egd=file:/dev/./urandom \
+    -Dspring.jmx.enabled=false"
 
 # Run the application with PORT environment variable support
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar --server.port=${PORT:-8080}"]
