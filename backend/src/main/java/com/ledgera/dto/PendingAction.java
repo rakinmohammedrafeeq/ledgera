@@ -1,9 +1,10 @@
 package com.ledgera.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Represents a write action (create_transaction or update_transaction) that has been proposed by
@@ -30,6 +31,7 @@ public class PendingAction {
     /** Human-readable description of what will happen, e.g. "Create expense Food of 250.00 on 2026-07-26". */
     private String summary;
 
-    /** When this action expires (10 minutes from creation). */
-    private LocalDateTime expiresAt;
+    /** When this action expires (10 minutes from creation). Formatted in ISO-8601 UTC with 'Z'. */
+    @JsonFormat(shape = JsonFormat.Shape.STRING, timezone = "UTC")
+    private Instant expiresAt;
 }

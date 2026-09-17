@@ -7,7 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -61,9 +62,9 @@ public class PendingActionStore {
             evictExpired();
         }
 
-        String actionId      = UUID.randomUUID().toString();
-        LocalDateTime expiry = LocalDateTime.now().plusMinutes(TTL_MINUTES);
-        String summary       = buildSummary(toolCall);
+        String actionId = UUID.randomUUID().toString();
+        Instant expiry  = Instant.now().plus(TTL_MINUTES, ChronoUnit.MINUTES);
+        String summary  = buildSummary(toolCall);
 
         PendingAction action = PendingAction.builder()
                 .actionId(actionId)
@@ -93,7 +94,7 @@ public class PendingActionStore {
                     userId, actionId, entry.userId());
             return Optional.empty();
         }
-        if (LocalDateTime.now().isAfter(entry.action().getExpiresAt())) {
+        if (Instant.now().isAfter(entry.action().getExpiresAt())) {
             store.remove(actionId);
             logger.debug("Pending action {} expired", actionId);
             return Optional.empty();
@@ -112,7 +113,7 @@ public class PendingActionStore {
     // ── Internal helpers ───────────────────────────────────────────────────────
 
     private void evictExpired() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         int before = store.size();
         store.entrySet().removeIf(e -> now.isAfter(e.getValue().action().getExpiresAt()));
         logger.debug("Evicted {} expired pending actions (store size was {})", before - store.size(), before);

@@ -43,9 +43,22 @@ function formatCountdown(totalSeconds: number): string {
 }
 
 /** Computes seconds remaining from an ISO-8601 expiresAt string. */
-function secondsUntil(isoDatetime: string): number {
-  const remaining = Math.floor((new Date(isoDatetime).getTime() - Date.now()) / 1000)
-  return Math.max(0, remaining)
+function secondsUntil(isoDatetime?: string): number {
+  if (!isoDatetime) return 600
+  try {
+    // If the server string lacks timezone info (e.g. "2026-09-17T13:02:46.516"),
+    // append 'Z' so browsers parse it as UTC rather than local time.
+    const normalized =
+      isoDatetime.endsWith('Z') || isoDatetime.includes('+') || /T.*[+-]\d{2}/.test(isoDatetime)
+        ? isoDatetime
+        : `${isoDatetime}Z`
+    const parsed = new Date(normalized).getTime()
+    if (isNaN(parsed)) return 600
+    const remaining = Math.floor((parsed - Date.now()) / 1000)
+    return remaining
+  } catch {
+    return 600
+  }
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -65,26 +78,31 @@ export const AgentConfirmModal = ({
   onExpired,
 }: AgentConfirmModalProps) => {
   const queryClient = useQueryClient()
-  const [secondsLeft, setSecondsLeft] = useState<number>(() =>
-    secondsUntil(pendingAction.expiresAt)
-  )
+  const [secondsLeft, setSecondsLeft] = useState<number>(() => {
+    const remaining = secondsUntil(pendingAction.expiresAt)
+    // Guard: If remaining <= 0 on initial mount (e.g. client/server clock drift),
+    // give the user the standard 10-minute window (600s) instead of immediately auto-closing!
+    return remaining > 0 ? Math.min(remaining, 600) : 600
+  })
 
   // ── Countdown timer ───────────────────────────────────────────────────────
 
   useEffect(() => {
-    // Recalculate from the actual expiresAt on each mount in case of clock drift
-    setSecondsLeft(secondsUntil(pendingAction.expiresAt))
+    // Initialize countdown from parsed remaining time, with a safety floor
+    const initial = secondsUntil(pendingAction.expiresAt)
+    setSecondsLeft(initial > 0 ? Math.min(initial, 600) : 600)
 
     const interval = setInterval(() => {
-      const remaining = secondsUntil(pendingAction.expiresAt)
-      setSecondsLeft(remaining)
-
-      if (remaining <= 0) {
-        clearInterval(interval)
-        // Auto-close and notify the parent — do NOT call confirm endpoint on an
-        // expired action (it will 404 server-side anyway).
-        onExpired()
-      }
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          // Auto-close and notify the parent — do NOT call confirm endpoint on an
+          // expired action (it will 404 server-side anyway).
+          onExpired()
+          return 0
+        }
+        return prev - 1
+      })
     }, TICK_MS)
 
     return () => clearInterval(interval)
